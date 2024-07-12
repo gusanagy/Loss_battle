@@ -9,4 +9,3 @@ A loss benchmark for underwater image enhancement in many different architecture
 
 ## Test the results
 
-
