@@ -6,7 +6,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from kornia.losses import ssim_loss as ssim, psnr_loss as psnr, MS_SSIMLoss as ms_ssim, charbonnier_loss as charbonnier
 import numpy as np
 from numpy import mean, round, transpose
 from time import time
@@ -14,7 +13,6 @@ import lpips
 import torchvision.models as models
 import cv2
 
-oss_vgg11 = lpips.LPIPS(net='vgg')#a vgg vem do lpips entao
 loss_squeeze = lpips.LPIPS(net='squeeze')
 loss_alex = lpips.LPIPS(net='alex')
 

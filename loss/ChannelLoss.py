@@ -6,10 +6,8 @@ All loss functions
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from kornia.losses import ssim_loss as ssim, psnr_loss as psnr, MS_SSIMLoss as ms_ssim, charbonnier_loss as charbonnier
 import numpy as np
 from numpy import mean, round, transpose
-from time import time
 
 
 
@@ -547,6 +545,8 @@ class YUV420ChannelLoss(nn.Module):
         super(YUV420ChannelLoss, self).__init__()
         self.patch_size = patch_size
 
+    def name(self):
+        return 'YUV420ChannelLoss'
     def rgb_to_yuv420(self, rgb):
         """
         Convert RGB to YUV420 color space.
@@ -615,9 +615,16 @@ class YUV420ChannelLoss(nn.Module):
 
 """Histogram Color Loss"""
 class HistogramColorLoss(nn.Module):
-    def __init__(self, bins=256):
+    def __init__(self, bins:int =256, number: int = None):
         super(HistogramColorLoss, self).__init__()
         self.bins = bins
+        self._number=number
+    @property
+    def name(self):
+        return 'HistogramColorLoss'
+    @property
+    def number(self):
+        return self._number
 
     def compute_histogram(self, image, bins):
         """
@@ -662,5 +669,8 @@ class HistogramColorLoss(nn.Module):
         loss = F.mse_loss(hist_input, hist_target)
         return loss
 
-
+class list_loss(nn.Module):
+    def __init__(self, loss_parameters, loss_group, loss_number):#receber a lista de parametros para as funcoes de perda
+        super(list_loss, self).__init__()
+        ### Inicializar todas as losses com seus respectivos parametros
 
