@@ -544,9 +544,6 @@ class YUV420ChannelLoss(nn.Module):
     def __init__(self, patch_size=15):
         super(YUV420ChannelLoss, self).__init__()
         self.patch_size = patch_size
-
-    def name(self):
-        return 'YUV420ChannelLoss'
     def rgb_to_yuv420(self, rgb):
         """
         Convert RGB to YUV420 color space.
@@ -615,16 +612,17 @@ class YUV420ChannelLoss(nn.Module):
 
 """Histogram Color Loss"""
 class HistogramColorLoss(nn.Module):
-    def __init__(self, bins:int =256, number: int = None):
+    def __init__(self, bins:int =256, id: int = None):
         super(HistogramColorLoss, self).__init__()
         self.bins = bins
-        self._number=number
+        self._id=id
+
     @property
     def name(self):
         return self.__class__.__name__
     @property
-    def number(self):
-        return self._number
+    def id(self):
+        return self._id
 
     def compute_histogram(self, image, bins):
         """
