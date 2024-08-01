@@ -616,12 +616,13 @@ class HistogramColorLoss(nn.Module):
         super(HistogramColorLoss, self).__init__()
         self.bins = bins
         self._id=id
+
     @property
     def name(self):
         return self.__class__.__name__
     @property
     def id(self):
-        return self.id
+        return self._id
 
     def compute_histogram(self, image, bins):
         """
