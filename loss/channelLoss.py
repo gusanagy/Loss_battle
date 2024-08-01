@@ -621,7 +621,7 @@ class HistogramColorLoss(nn.Module):
         self._number=number
     @property
     def name(self):
-        return 'HistogramColorLoss'
+        return self.__class__.__name__
     @property
     def number(self):
         return self._number

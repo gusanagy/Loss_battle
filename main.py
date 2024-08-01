@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from loss.ChannelLoss import *
+from loss.perceptualLoss import *
 
-h = HistogramColorLoss(number=1)
-print(h.number, h.name)
+h = PerceptualLoss(id=4)
+print(h.name, h.id)
 
 ## carregar modelos
 ## carregar funcoes de perda

@@ -1,4 +1,4 @@
-from .ChannelLoss import *
+from .channelLoss import *
 from .perceptualLoss import *
 from .structuralLoss import *
 

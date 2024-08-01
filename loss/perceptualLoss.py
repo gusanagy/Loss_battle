@@ -12,45 +12,69 @@ from time import time
 import lpips
 import torchvision.models as models
 import cv2
+import warnings
 
-loss_squeeze = lpips.LPIPS(net='squeeze')
-loss_alex = lpips.LPIPS(net='alex')
-
+# Suprimir apenas FutureWarnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 """VGG Perceptual Loss"""
-class VGGPerceptualLoss(nn.Module):
-    def __init__(self, vgg_model='vgg16', layer_indices=None):
-        super(VGGPerceptualLoss, self).__init__()
+class PerceptualLoss(nn.Module):
+    def __init__(self, id: int = None, model='vgg16', layer_indices=None):
+        super(PerceptualLoss, self).__init__()
+        #load id
+        self._id = id
         # Load the VGG model
-        if vgg_model == 'vgg11':
-            self.vgg = models.vgg11(weights=models.VGG11_Weights.IMAGENET1K_V1).features
-        elif vgg_model == 'vgg11_bn':
-            self.vgg = models.vgg11_bn(weights=models.VGG11_BN_Weights.IMAGENET1K_V1).features
-        elif vgg_model == 'vgg13':
-            self.vgg = models.vgg13(weights=models.VGG13_Weights.IMAGENET1K_V1).features
-        elif vgg_model == 'vgg13_bn':
-            self.vgg = models.vgg13_bn(weights=models.VGG13_BN_Weights.IMAGENET1K_V1).features
-        elif vgg_model == 'vgg16':
-            self.vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features
-        elif vgg_model == 'vgg16_bn':
-            self.vgg = models.vgg16_bn(weights=models.VGG16_BN_Weights.IMAGENET1K_V1).features
-        elif vgg_model == 'vgg19':
-            self.vgg = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features
-        elif vgg_model == 'vgg19_bn':
-            self.vgg = models.vgg19_bn(weights=models.VGG19_BN_Weights.IMAGENET1K_V1).features
+        self.model =model
+        if model == 'vgg11':
+            self.perceptual = models.vgg11(weights=models.VGG11_Weights.IMAGENET1K_V1).features
+        elif model == 'vgg11_bn':
+            self.perceptual = models.vgg11_bn(weights=models.VGG11_BN_Weights.IMAGENET1K_V1).features
+        elif model == 'vgg13':
+            self.perceptual = models.vgg13(weights=models.VGG13_Weights.IMAGENET1K_V1).features
+        elif model == 'vgg13_bn':
+            self.perceptual = models.vgg13_bn(weights=models.VGG13_BN_Weights.IMAGENET1K_V1).features
+        elif model == 'vgg16':
+            self.perceptual = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1).features
+        elif model == 'vgg16_bn':
+            self.perceptual = models.vgg16_bn(weights=models.VGG16_BN_Weights.IMAGENET1K_V1).features
+        elif model == 'vgg19':
+            self.perceptual = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features
+        elif model == 'vgg19_bn':
+            self.perceptual = models.vgg19_bn(weights=models.VGG19_BN_Weights.IMAGENET1K_V1).features
+        elif model == 'squeeze':
+            self.squeeze = models.SqueezeNet1_1(weights=models.SqueezeNet1_1_Weights.IMAGENET1K).features
+        elif model == 'alex':
+            self.alex = models.alexnet(weights = models.AlexNet_Weights.IMAGENET1K_V1).features
         else:
             raise ValueError("Unsupported VGG model type")
 
-        self.vgg.eval()  # Set to evaluation mode
-        for param in self.vgg.parameters():
+        
+        self.perceptual.eval()  # Set to evaluation mode
+        for param in self.perceptual.parameters():
             param.requires_grad = False  # Freeze the parameters
+        #adicionar mais perceptuais
+        self.layer_indices = {
+                'squeeze':  [3, 7, 12],
+                'vgg11':    [3, 8, 15, 22],
+                'vgg11_bn': [3, 8, 15, 22],
+                'vgg13':    [3, 8, 15, 22],
+                'vgg13_bn': [3, 8, 15, 22],
+                'vgg16':    [3, 8, 15, 22],
+                'vgg16_bn': [3, 8, 15, 22],
+                'vgg19':    [3, 8, 17, 26, 35],
+                'vgg19_bn': [3, 8, 17, 26, 35],
+                'alex':     [3, 6, 8, 10, 12],
+            }
 
-        # Specify the layers to extract features from
-        if layer_indices is None:
-            self.layer_indices = [3, 8, 15, 22]  # Default layers for VGG16
-        else:
-            self.layer_indices = layer_indices
-
+        if layer_indices is not None:
+            self.layer_indices[model] = layer_indices
+        
+    @property
+    def name(self):
+        return self.__class__.__name__ + '_' +self.model
+    @property
+    def id(self):
+        return self._id
     def forward(self, x, y):
         # Normalize the inputs
         mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(x.device)
@@ -78,58 +102,7 @@ class VGGPerceptualLoss(nn.Module):
         return features
 
 
-"""Gradient Loss OpenCV"""
-class GradientLossOpenCV(nn.Module):
-    def __init__(self):
-        super(GradientLossOpenCV, self).__init__()
-    
-    def compute_gradient(self, image):
-        """
-        Compute the gradient of an image using OpenCV Sobel filters.
 
-        Args:
-            image (Tensor): The image with shape (N, C, H, W).
-
-        Returns:
-            Tensor: The gradient magnitude with shape (N, C, H, W).
-        """
-        # Convert PyTorch tensor to NumPy array
-        image_np = image.detach().cpu().numpy()
-        N, C, H, W = image_np.shape
-        
-        gradient_magnitude = np.zeros((N, C, H, W), dtype=np.float32)
-        
-        for n in range(N):
-            for c in range(C):
-                img = image_np[n, c, :, :]
-                grad_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
-                grad_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
-                grad_mag = np.sqrt(grad_x ** 2 + grad_y ** 2)
-                gradient_magnitude[n, c, :, :] = grad_mag
-        
-        # Convert NumPy array back to PyTorch tensor
-        gradient_magnitude_tensor = torch.tensor(gradient_magnitude).to(image.device)
-        
-        return gradient_magnitude_tensor
-
-    def forward(self, input, target):
-        """
-        Compute the gradient loss between the input and target images.
-
-        Args:
-            input (Tensor): The predicted image with shape (N, C, H, W).
-            target (Tensor): The ground truth image with shape (N, C, H, W).
-
-        Returns:
-            Tensor: The Gradient Loss value.
-        """
-        # Compute gradients
-        gradient_input = self.compute_gradient(input)
-        gradient_target = self.compute_gradient(target)
-        
-        # Compute the loss
-        loss = F.mse_loss(gradient_input, gradient_target)
-        return loss
 
 
 
