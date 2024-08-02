@@ -2,7 +2,7 @@ from .channelLoss import *
 from .perceptualLoss import PerceptualLoss
 from .structuralLoss import *
 from typing import List
-import tqdm.notebook as tqdm
+from tqdm.notebook import tqdm
 
 
 
@@ -28,3 +28,4 @@ def build_structural_losses(structural_loss: List[str] = ['ssim', 'psnr', 'mse',
     for loss in tqdm(structural_loss):
        structural.append((loss, id))
        id += 1
+    return structural
