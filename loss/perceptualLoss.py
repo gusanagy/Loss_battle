@@ -24,12 +24,12 @@ class PerceptualLoss(nn.Module):
         #load id
         self._id = id
         # Load the VGG model
-        
+        #Todas sem batch normalization
         if model == 'vgg11':
             self.perceptual = models.vgg11(weights=models.VGG11_Weights.IMAGENET1K_V1).features
         elif model == 'vgg11_bn':
             self.perceptual = models.vgg11_bn(weights=models.VGG11_BN_Weights.IMAGENET1K_V1).features
-        elif model == 'vgg13':
+        elif model == 'vgg13':#retirar
             self.perceptual = models.vgg13(weights=models.VGG13_Weights.IMAGENET1K_V1).features
         elif model == 'vgg13_bn':
             self.perceptual = models.vgg13_bn(weights=models.VGG13_BN_Weights.IMAGENET1K_V1).features
@@ -71,7 +71,7 @@ class PerceptualLoss(nn.Module):
         
     @property
     def name(self):
-        return self.__class__.__name__ + '_' +self.model
+        return self.__class__.__name__ + '_' + self.model
     @property
     def id(self):
         return self._id

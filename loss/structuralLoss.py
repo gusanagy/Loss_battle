@@ -18,29 +18,46 @@ import cv2
 
 """Mae Loss function"""
 class MAELoss(nn.Module):
-    def __init__(self):
+    def __init__(self, id: int = None):
         super(MAELoss, self).__init__()
         self.criterion = nn.L1Loss()
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
 
     def forward(self, input, target):
         return self.criterion(input, target)
     
-
-"""MSE Loss Function"""
+"""MSE Loss Function"""#%
 class MSELoss(nn.Module):
-    def __init__(self):
+    def __init__(self, id: int = None):
         super(MAELoss, self).__init__()
         self.criterion = nn.MSELoss()
-
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
     def forward(self, input, target):
         return self.criterion(input, target)
 
-
-
 """L1 Loss Function"""
 class L1Loss(nn.Module):
-    def __init__(self):
+    def __init__(self, id: int = None):
         super(L1Loss, self).__init__()
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
 
     def forward(self, input, target):
         # Calcula a diferença absoluta entre o input e o target
@@ -49,7 +66,7 @@ class L1Loss(nn.Module):
         loss = torch.mean(abs_diff)
         return loss
 
-"""Gradient Loss OpenCV"""
+"""Gradient Loss OpenCV"""#%
 class GradientLossOpenCV(nn.Module):
     def __init__(self,id: int = None):
         super(GradientLossOpenCV, self).__init__()
@@ -107,6 +124,78 @@ class GradientLossOpenCV(nn.Module):
         # Compute the loss
         loss = F.mse_loss(gradient_input, gradient_target)
         return loss
+
+"""SSIM Loss function"""#%
+class SSIMLoss(nn.Module):
+    def __init__(self, id: int = None):
+        super(SSIMLoss, self).__init__()
+        self.criterion = ssim
+        self._id = id
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def id(self):
+        return self._id
+
+    def forward(self, input, target):
+        return self.criterion(input, target)
+
+"""PSNR Loss function"""#%
+class PSNRLoss(nn.Module):
+    def __init__(self, id: int = None):
+        super(PSNRLoss, self).__init__()
+        self.criterion = psnr
+        self._id = id
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def id(self):
+        return self._id
+
+    def forward(self, input, target):
+        return self.criterion(input, target)
+
+"""MS-SSIM Loss function"""
+class MSSSIMLoss(nn.Module):
+    def __init__(self, id: int = None):
+        super(MSSSIMLoss, self).__init__()
+        self.criterion = ms_ssim()
+        self._id = id
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def id(self):
+        return self._id
+
+    def forward(self, input, target):
+        return self.criterion(input, target)
+
+"""Charbonnier Loss function"""
+class CharbonnierLoss(nn.Module):
+    def __init__(self, id: int = None):
+        super(CharbonnierLoss, self).__init__()
+        self.criterion = charbonnier
+        self._id = id
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def id(self):
+        return self._id
+
+    def forward(self, input, target):
+        return self.criterion(input, target)
 
 
 

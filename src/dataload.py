@@ -8,50 +8,62 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch.utils.data as data
 
-def load_image_paths(dataset_path, dataset="all",task="train",split=False):
-    """
-    dataset_path: endereço do dataset raiz
-    dataset: "all", "UIEB", "RUIE", "SUIM"
-    task: "train", "val"
+def load_image_paths(dataset_path="data/", dataset: str= None, task="train",split=False):
 
     """
-    image_paths = []
-    if dataset == "all":
-        # Constrói os padrões de caminho para os arquivos .jpg e .png dentro das pastas train e train/images
-        pattern1_jpg = os.path.join(dataset_path, "*", f"{task}", "*.jpg")
-        pattern2_jpg = os.path.join(dataset_path, "*", f"{task}", "images", "*.jpg")
-        pattern1_png = os.path.join(dataset_path, "*", f"{task}", "*.png")
-        pattern2_png = os.path.join(dataset_path, "*", f"{task}", "images", "*.png")
-        pattern3_jpg = os.path.join(dataset_path, "*", "*",f"{task}", "*.jpg")
+    Load paired datasets for training and testing.
+        dataset_path: endereço do dataset raiz
+        dataset: "UIEB", "EUVP", "HICRD", "LSUI", "TURBID"
+        task: "train", "val"
+        split:  True, False #split in 80% train and 20% test
+    return:
+        list[paired_data]: data_raw, data_ref
+    """
 
-        
-        # Encontra todos os arquivos .jpg e .png correspondentes aos padrões
-        image_paths.extend(glob.glob(pattern1_jpg))
-        image_paths.extend(glob.glob(pattern2_jpg))
-        image_paths.extend(glob.glob(pattern1_png))
-        image_paths.extend(glob.glob(pattern2_png))
-        image_paths.extend(glob.glob(pattern3_jpg))
-    elif dataset == "SUIM":
-         pattern2_jpg = os.path.join(dataset_path, "*", f"{task}", "images", "*.jpg")
-         image_paths.extend(glob.glob(pattern2_jpg))
+    image_paths_raw,image_paths_ref = [],[]
+    # Constrói os padrões de caminho para os arquivos .jpg e .png dentro das pastas train e train/images
+    if dataset == "EUVP":
+        pattern_png_raw = os.path.join(dataset_path, "*","/Paired/", "*","/train_A/", "*.jpg")
+        image_paths_raw.extend(glob.glob(pattern_png_raw))
+        pattern_png_ref = os.path.join(dataset_path, "*","/Paired/", "*","/train_B/", "*.jpg")
+        image_paths_ref.extend(glob.glob(pattern_png_ref))
     elif dataset == "UIEB":
-        pattern1_png = os.path.join(dataset_path, "*", f"{task}", "*.png")
-        image_paths.extend(glob.glob(pattern1_png))
-    elif dataset == "RUIE":
-        pattern3_jpg = os.path.join(dataset_path, "*", "*",f"{task}", "*.jpg")
-        image_paths.extend(glob.glob(pattern3_jpg))
+        pattern_png_raw = os.path.join(dataset_path, "*", "/raw-890/", "*.png")
+        image_paths_raw.extend(glob.glob(pattern_png_raw))
+        pattern_png_ref = os.path.join(dataset_path, "*", "/reference-890/", "*.png")
+        image_paths_ref.extend(glob.glob(pattern_png_ref))
+    elif dataset == "HICRD":
+        pattern_png_raw = os.path.join(dataset_path, "*", "/trainA_paired/", "*.png")
+        image_paths_raw.extend(glob.glob(pattern_png_raw))
+        pattern_png_ref = os.path.join(dataset_path, "*", "/trainB_paired/", "*.png")
+        image_paths_ref.extend(glob.glob(pattern_png_ref))
+    elif dataset == "TURBID":
+        pattern_png_raw = os.path.join(dataset_path, "*", "*.jpg")
+        image_paths_raw.extend(glob.glob(pattern_png_raw))
+        image_paths_raw = [path for path in image_paths_raw if not path.endswith('ref.jpg')]
+        pattern_png_ref = os.path.join(dataset_path, "*", "ref.jpg")
+        for i in range(len(image_paths_raw)):
+            image_paths_ref.append(image_paths_ref[0])
+    elif dataset == "LSUI":
+        pattern_png_raw = os.path.join(dataset_path, "*", "/input/", "*.jpg")
+        image_paths_raw.extend(glob.glob(pattern_png_raw))
+        pattern_png_ref = os.path.join(dataset_path, "*", "/GT/", "*.jpg")
+        image_paths_ref.extend(glob.glob(pattern_png_ref))
+    else:
+        raise ValueError("Invalid dataset name\nPlease choose from ['UIEB', 'EUVP', 'HICRD', 'LSUI', 'TURBID']\n or add your own dataset")
     
     # Embaralha os caminhos das imagens
-    random.shuffle(image_paths)
     if split == True:
         # Divide os dados em 80% para treino e 20% para teste
-        split_index = int(len(image_paths) * 0.8)
-        train_paths = image_paths[:split_index]
-        test_paths = image_paths[split_index:]
+        split_index = int(len(image_paths_raw) * 0.8)
+        train_paths = image_paths_raw[:split_index]
+        test_paths = image_paths_ref[split_index:]
+        train_paths = image_paths_raw[:split_index]
+        test_paths = image_paths_ref[split_index:]
         
         return train_paths, test_paths
     else:
-        return image_paths
+        return image_paths_raw, image_paths_ref
     
 
 def list_images(directory):
@@ -70,9 +82,6 @@ def list_images(directory):
                 image_paths.append(os.path.join(root, file))
 
     return image_paths
-
-
-
 
 class load_data(data.Dataset):
     def __init__(self, input_data_low, input_data_high):

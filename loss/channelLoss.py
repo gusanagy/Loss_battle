@@ -12,10 +12,17 @@ from numpy import mean, round, transpose
 
 
 
-"""Color Loss function"""
-class color_loss(nn.Module):
-    def __init__(self):
+"""Color Loss function"""##mudar nome %
+class angular_color_loss(nn.Module):
+    def __init__(self,id:int = None):
         super(color_loss, self).__init__()
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
     
     def forward(self, output, gt,mask=None):
         img_ref = F.normalize(output, p = 2, dim = 1)
@@ -27,12 +34,17 @@ class color_loss(nn.Module):
         # loss_cos = self.mse(img_ref, ref_p)
         return loss_cos
     
-    
 """Light Loss Function"""
 class light_loss(nn.Module):##pesquisar significado das modificacoes
-    def __init__(self):
+    def __init__(self,id:int = None):
         super(light_loss, self).__init__()
-
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
     def forward(self,output,gt,mask=None):
         #output = torch.mean(output, 1, keepdim=True)
         #gt=torch.mean(gt,1,keepdim=True)
@@ -44,15 +56,18 @@ class light_loss(nn.Module):##pesquisar significado das modificacoes
         loss=F.l1_loss(output,gt)
         return loss
 
-    
-
-
-"""Dark Channel Loss"""
+"""Dark Channel Loss"""#%
 class DarkChannelLoss(nn.Module):
-    def __init__(self, patch_size=15):
+    def __init__(self,id:int = None, patch_size=15):
         super(DarkChannelLoss, self).__init__()
         self.patch_size = patch_size
-
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
     def forward(self, input, target):
         """
         Compute the Dark Channel Loss between the input and target images.
@@ -79,12 +94,18 @@ class DarkChannelLoss(nn.Module):
         loss = F.mse_loss(dark_input, dark_target)
         return loss
 
-
 """LCH Channel Loss"""
 class LCHChannelLoss(nn.Module):
-    def __init__(self, patch_size=15):
+    def __init__(self,id:int = None, patch_size=15):
         super(LCHChannelLoss, self).__init__()
         self.patch_size = patch_size
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
 
     def rgb_to_lch(self, rgb):
         """
@@ -153,14 +174,19 @@ class LCHChannelLoss(nn.Module):
         # Total loss
         loss = l_loss + c_loss + h_loss
         return loss
-    
 
-"""Lab Channel"""
+"""Lab Channel"""#%
 class LabChannelLoss(nn.Module):
-    def __init__(self, patch_size=15):
+    def __init__(self,id:int = None, patch_size=15):
         super(LabChannelLoss, self).__init__()
         self.patch_size = patch_size
-
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
     def rgb_to_lab(self, rgb):
         """
         Convert RGB to LAB color space.
@@ -239,13 +265,18 @@ class LabChannelLoss(nn.Module):
         loss = l_loss + a_loss + b_loss
         return loss
 
-
 """YUV Channel Loss"""
 class YUVChannelLoss(nn.Module):
-    def __init__(self, patch_size=15):
+    def __init__(self,id: int = None, patch_size=15):
         super(YUVChannelLoss, self).__init__()
         self.patch_size = patch_size
-
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
     def rgb_to_yuv(self, rgb):
         """
         Convert RGB to YUV color space.
@@ -306,13 +337,18 @@ class YUVChannelLoss(nn.Module):
         loss = y_loss + u_loss + v_loss
         return loss
 
-
-"""HSV Channel Loss"""
+"""HSV Channel Loss"""#%
 class HSVChannelLoss(nn.Module):
-    def __init__(self, patch_size=15):
+    def __init__(self,id: int=None, patch_size=15):
         super(HSVChannelLoss, self).__init__()
         self.patch_size = patch_size
-
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
     def rgb_to_hsv(self, rgb):
         """
         Convert RGB to HSV color space.
@@ -389,12 +425,19 @@ class HSVChannelLoss(nn.Module):
         loss = h_loss + s_loss + v_loss
         return loss
 
-
 """YcbCr Channel Loss"""
 class YCbCrChannelLoss(nn.Module):
-    def __init__(self, patch_size=15):
+    def __init__(self,id:int = None, patch_size=15):
         super(YCbCrChannelLoss, self).__init__()
         self.patch_size = patch_size
+        self._id = id
+    
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
 
     def rgb_to_ycbcr(self, rgb):
         """
@@ -456,12 +499,18 @@ class YCbCrChannelLoss(nn.Module):
         loss = y_loss + cb_loss + cr_loss
         return loss
 
-
 """CIELUV Channel Loss"""
 class CIELUVChannelLoss(nn.Module):
-    def __init__(self, patch_size=15):
+    def __init__(self,id:int = None, patch_size=15):
         super(CIELUVChannelLoss, self).__init__()
         self.patch_size = patch_size
+        self._id = id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
 
     def rgb_to_cieluv(self, rgb):
         """
@@ -538,12 +587,18 @@ class CIELUVChannelLoss(nn.Module):
         loss = l_loss + u_loss + v_loss
         return loss
 
-
 """YUV 420 Channel Loss"""
 class YUV420ChannelLoss(nn.Module):
-    def __init__(self, patch_size=15):
+    def __init__(self,id=None, patch_size:int = 15):
         super(YUV420ChannelLoss, self).__init__()
         self.patch_size = patch_size
+        self._id=id
+    @property
+    def name(self):
+        return self.__class__.__name__
+    @property
+    def id(self):
+        return self._id
     def rgb_to_yuv420(self, rgb):
         """
         Convert RGB to YUV420 color space.
@@ -609,8 +664,7 @@ class YUV420ChannelLoss(nn.Module):
         loss = y_loss + u_loss + v_loss
         return loss
     
-
-"""Histogram Color Loss"""
+"""Histogram Color Loss"""#%
 class HistogramColorLoss(nn.Module):
     def __init__(self, bins:int =256, id: int = None):
         super(HistogramColorLoss, self).__init__()
@@ -667,8 +721,4 @@ class HistogramColorLoss(nn.Module):
         loss = F.mse_loss(hist_input, hist_target)
         return loss
 
-class list_loss(nn.Module):
-    def __init__(self, loss_parameters, loss_group, loss_number):#receber a lista de parametros para as funcoes de perda
-        super(list_loss, self).__init__()
-        ### Inicializar todas as losses com seus respectivos parametros
 
