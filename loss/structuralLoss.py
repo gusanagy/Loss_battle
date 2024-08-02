@@ -53,7 +53,7 @@ class MAELoss(nn.Module):
 """MSE Loss Function"""#%
 class MSELoss(nn.Module):
     def __init__(self, id: int = None):
-        super(MAELoss, self).__init__()
+        super(MSELoss, self).__init__()
         self.criterion = nn.MSELoss()
         self._id = id
     @property

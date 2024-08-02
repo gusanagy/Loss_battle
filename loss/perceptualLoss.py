@@ -42,7 +42,7 @@ class PerceptualLoss(nn.Module):
         elif model == 'vgg19_bn':
             self.perceptual = models.vgg19_bn(weights=models.VGG19_BN_Weights.IMAGENET1K_V1).features
         elif model == 'squeeze':
-            self.perceptual = models.squeezenet1_1(weights=models.SqueezeNet1_1_Weights.IMAGENET1K).features
+            self.perceptual = models.squeezenet1_1(weights=models.SqueezeNet1_1_Weights.IMAGENET1K_V1).features
         elif model == 'alex':
             self.perceptual = models.alexnet(weights = models.AlexNet_Weights.IMAGENET1K_V1).features
         else:
