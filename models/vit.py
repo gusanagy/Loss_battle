@@ -57,7 +57,9 @@ class ImageEnhancerTransformer(nn.Module):
         ])
         self.norm = nn.LayerNorm(embed_dim)
         self.fc = nn.Linear(embed_dim, self.patch_dim)
-
+    @property
+    def name(self):
+        return self.__class__.__name__
     def forward(self, x):
         batch_size = x.size(0)
         x = self._to_patches(x)
