@@ -99,7 +99,9 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
         self.encoder = Encoder(input_channels, hidden_dims, latent_dim)
         self.decoder = Decoder(latent_dim, hidden_dims, output_channels)
-    
+    @property
+    def name(self):
+        return self.__class__.__name__
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)

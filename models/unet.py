@@ -84,6 +84,9 @@ class UNet(nn.Module):
         # Final convolution
         
         self.final_conv = nn.Conv2d(base_filters, out_channels, kernel_size=1)
+    @property
+    def name(self):
+        return self.__class__.__name__
     def see_model(self):
         print(f"""
         encoder: {self.encoder_layers}
