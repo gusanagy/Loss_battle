@@ -13,9 +13,27 @@ from time import time
 import lpips
 import torchvision.models as models
 import cv2
+from typing import List
 # from torch.nn import MSELoss #L2LOSS
 
 
+def list_structural_loss(list_loss: List[str] = None):
+    dict_loss = {
+        'ssim': SSIMLoss(),
+        'psnr': PSNRLoss(),
+        'mse': MSELoss(),
+        'gradientLoss': GradientLossOpenCV(),
+        'ms_ssim': MSSSIMLoss(),
+        'charbonnier': CharbonnierLoss(),
+        'l1': L1Loss(),
+        'mae': MAELoss()
+    }
+    return_loss =[]
+    for loss in list_loss:
+        if loss not in dict_loss.keys():
+            raise ValueError(f"Unsupported perceptual model type\nPlease choose from {dict_loss.keys()}")
+        return_loss.append(dict_loss[loss])
+    return return_loss
 """Mae Loss function"""
 class MAELoss(nn.Module):
     def __init__(self, id: int = None):

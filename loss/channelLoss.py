@@ -8,14 +8,33 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from numpy import mean, round, transpose
+from typing import List
 
-
-
+def list_channel_loss(list_loss: List[str] = None):
+    dict_loss = {
+    'angular_color_loss':angular_color_loss(),
+    'light_loss':light_loss(),
+    'dark_channel_loss':DarkChannelLoss(),
+    'lch_channel_loss':LCHChannelLoss(),
+    'lab_channel_loss':LabChannelLoss(), 
+    'yuv_channel_loss':YUVChannelLoss(),
+    'hsv_channel_loss':HSVChannelLoss(), 
+    'ycbcr_channel_loss':YCbCrChannelLoss(),
+    'cieluv_channel_loss':CIELUVChannelLoss(),
+    'yuv420_channel_loss:':YUV420ChannelLoss(),
+    'Histogram_loss':HistogramColorLoss()
+                }
+    return_loss =[]
+    for loss in list_loss:
+        if loss not in dict_loss.keys():
+            raise ValueError(f"Unsupported perceptual model type\nPlease choose from {dict_loss.keys()}")
+        return_loss.append(dict_loss[loss])
+    return return_loss
 
 """Color Loss function"""##mudar nome %
 class angular_color_loss(nn.Module):
     def __init__(self,id:int = None):
-        super(color_loss, self).__init__()
+        super(angular_color_loss, self).__init__()
         self._id = id
     @property
     def name(self):

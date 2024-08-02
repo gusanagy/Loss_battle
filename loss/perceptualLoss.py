@@ -42,12 +42,12 @@ class PerceptualLoss(nn.Module):
         elif model == 'vgg19_bn':
             self.perceptual = models.vgg19_bn(weights=models.VGG19_BN_Weights.IMAGENET1K_V1).features
         elif model == 'squeeze':
-            self.squeeze = models.SqueezeNet1_1(weights=models.SqueezeNet1_1_Weights.IMAGENET1K).features
+            self.perceptual = models.squeezenet1_1(weights=models.SqueezeNet1_1_Weights.IMAGENET1K).features
         elif model == 'alex':
-            self.alex = models.alexnet(weights = models.AlexNet_Weights.IMAGENET1K_V1).features
+            self.perceptual = models.alexnet(weights = models.AlexNet_Weights.IMAGENET1K_V1).features
         else:
             raise ValueError("Unsupported perceptual model type\nPlease choose from ['vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn', 'squeeze', 'alex']")
-        self.model =model
+        self._model =model
         
         self.perceptual.eval()  # Set to evaluation mode
         for param in self.perceptual.parameters():
@@ -71,7 +71,7 @@ class PerceptualLoss(nn.Module):
         
     @property
     def name(self):
-        return self.__class__.__name__ + '_' + self.model
+        return self.__class__.__name__ + '_' + self._model
     @property
     def id(self):
         return self._id
