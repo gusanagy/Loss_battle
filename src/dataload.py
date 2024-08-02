@@ -7,6 +7,8 @@ import glob
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch.utils.data as data
+import Albumentations as A
+from torch.utils.data import DataLoader
 
 def load_image_paths(dataset_path="data/", dataset: str= None, task="train",split=False):
 
@@ -22,21 +24,22 @@ def load_image_paths(dataset_path="data/", dataset: str= None, task="train",spli
 
     image_paths_raw,image_paths_ref = [],[]
     # Constrói os padrões de caminho para os arquivos .jpg e .png dentro das pastas train e train/images
-    if dataset == "EUVP":
+    """if dataset == "EUVP":
         pattern_png_raw = os.path.join(dataset_path, "*","/Paired/", "*","/train_A/", "*.jpg")
         image_paths_raw.extend(glob.glob(pattern_png_raw))
         pattern_png_ref = os.path.join(dataset_path, "*","/Paired/", "*","/train_B/", "*.jpg")
-        image_paths_ref.extend(glob.glob(pattern_png_ref))
-    elif dataset == "UIEB":
+        image_paths_ref.extend(glob.glob(pattern_png_ref))"""
+    if dataset == "UIEB":
         pattern_png_raw = os.path.join(dataset_path, "*", "/raw-890/", "*.png")
         image_paths_raw.extend(glob.glob(pattern_png_raw))
         pattern_png_ref = os.path.join(dataset_path, "*", "/reference-890/", "*.png")
         image_paths_ref.extend(glob.glob(pattern_png_ref))
-    elif dataset == "HICRD":
+        """elif dataset == "HICRD":
         pattern_png_raw = os.path.join(dataset_path, "*", "/trainA_paired/", "*.png")
         image_paths_raw.extend(glob.glob(pattern_png_raw))
         pattern_png_ref = os.path.join(dataset_path, "*", "/trainB_paired/", "*.png")
-        image_paths_ref.extend(glob.glob(pattern_png_ref))
+        image_paths_ref.extend(glob.glob(pattern_png_ref))"""
+    
     elif dataset == "TURBID":
         pattern_png_raw = os.path.join(dataset_path, "*", "*.jpg")
         image_paths_raw.extend(glob.glob(pattern_png_raw))
@@ -180,3 +183,37 @@ class load_data_test(data.Dataset):
        
 
         return [data_low, data_high,data_color,data_blur, self.input_data_low[idx]]
+
+
+"""Creating dataloaders"""
+
+
+#Dataloader for LSUI
+def create_dataloader(dataset_name: str =None, dataset_path: str =None, batch_size=16, num_workers=4):
+   #load paths
+    train_paths, test_paths = load_image_paths(dataset_path=dataset_path, dataset = dataset_name, task=True, split=True)
+    
+    #initialize it
+    train_dataset = load_data(input_data_low=train_paths[0], input_data_high=train_paths[1])
+    test_dataset = load_data(input_data_low=test_paths[0], input_data_high=test_paths[1])
+
+    #creating the DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+
+    return train_loader, test_loader
+
+#dataloader UIEB
+train_loader_UIEB, test_loader_UIEB = create_dataloader(dataset_name="Uieb", dataset_path="data/UIEB")
+
+#dataloader TURBID
+train_loader_TURBID, test_loader_TURBID = create_dataloader(dataset_name="Turbid", dataset_path="data/TURBID")
+
+#dataloader LSUI
+train_loader_LSUI, test_loader_LSUI = create_dataloader(dataset_name="Lsui", dataset_path="data/LSUI")
+
+
+
+
+
+
