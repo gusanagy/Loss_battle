@@ -13,7 +13,7 @@ from time import time
 import lpips
 import torchvision.models as models
 import cv2
-from torch.nn import MSELoss #L2LOSS
+# from torch.nn import MSELoss #L2LOSS
 
 
 """Mae Loss function"""

@@ -24,7 +24,7 @@ class PerceptualLoss(nn.Module):
         #load id
         self._id = id
         # Load the VGG model
-        self.model =model
+        
         if model == 'vgg11':
             self.perceptual = models.vgg11(weights=models.VGG11_Weights.IMAGENET1K_V1).features
         elif model == 'vgg11_bn':
@@ -46,8 +46,8 @@ class PerceptualLoss(nn.Module):
         elif model == 'alex':
             self.alex = models.alexnet(weights = models.AlexNet_Weights.IMAGENET1K_V1).features
         else:
-            raise ValueError("Unsupported VGG model type")
-
+            raise ValueError("Unsupported perceptual model type\nPlease choose from ['vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn', 'squeeze', 'alex']")
+        self.model =model
         
         self.perceptual.eval()  # Set to evaluation mode
         for param in self.perceptual.parameters():
