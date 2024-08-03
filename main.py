@@ -1,47 +1,124 @@
+import os
 import torch
+import torch.distributed as dist
 import torch.nn as nn
-import torch.nn.functional as F
-from loss import build_perceptual_losses, build_channel_losses
-from models import Unet_model, VAE_model, Vit_model
-import torchinfo as t
+import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, DistributedSampler, TensorDataset
+from loss import *
+from models import *
+from src.dataload import *
+from metrics.metrics import *
+from tqdm.notebook import tqdm
 
 
-## carregar funcoes de perda
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-per = build_perceptual_losses(['vgg11', 'vgg19'])
+def setup(rank, world_size):
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+    print(f"Rank {rank} initialized.")
 
-for i in per:
-    print(i.name,i.id)
+def cleanup():
+    dist.destroy_process_group()
 
-## carregar modelos
+class SimpleModel(nn.Module):
+    def __init__(self):
+        super(SimpleModel, self).__init__()
+        self.linear = nn.Linear(10, 1)
+
+    def forward(self, x):
+        return self.linear(x)
+
+def train_one_model(rank, world_size, epochs, loss_fn, model_name, model):
+    setup(rank, world_size)
+
+    #dataloader UIEBUIEB
+    train_loader_UIEB, test_loader_UIEB,sampler = create_dataloader(dataset_name="UIEB", dataset_path="data",world_size=world_size,rank=rank,rank_test=0)
+
+    modell = model.cuda(rank)
+    ddp_model = DDP(modell, device_ids=[rank])
+
+    criterion = loss_fn().cuda(rank)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-5)
+
+    for epoch in range(epochs):
+        ddp_model.train()
+        sampler.set_epoch(epoch)
+        for batch_idx, (data, target) in enumerate(train_loader_UIEB):
+            data, target = data.cuda(rank), target.cuda(rank)
+
+            optimizer.zero_grad()
+            output = ddp_model(data)
+            loss = criterion(output, target)
+            loss.backward()
+            optimizer.step()
+
+            if batch_idx % 10 == 0:
+                print(f"Rank {rank}, Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+    ##Salve Dir para salvar os checkpoints
+    ckpt_savedir='output/ckpt_battle/'
+    if not os.path.exists(ckpt_savedir):
+        os.makedirs(ckpt_savedir)
+    if rank == 0:
+        # Salvar o estado do modelo original, não o DDP
+        torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_ckpt.pth")
+        psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
+        # Avaliar o modelo
+        model.eval()
+        with torch.no_grad():
+            for batch_idx, (data, target) in enumerate(test_loader_UIEB):
+                data, target = data.cuda(rank), target.cuda(rank)
+                output = model(data)
+                #calcula a metrica
+                targets = target.cpu().numpy()
+                predictions = model(data.cuda(rank)).cpu().numpy()
+                psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, targets)
+                psnr_list.append(psnr_value)
+                ssim_list.append(ssim_value)
+                uciqe_list.append(uciqe_)
+                uiqm_list.append(uiqm)
+        avg_ssim = sum(ssim_list) / len(ssim_list)
+        avg_psnr = sum(psnr_list) / len(psnr_list)
+        avg_uciqe = sum(uciqe_list) / len(uciqe_list)
+        avg_uiqm = sum(uiqm_list) / len(uiqm_list)
+           
+        # Salvar métricas em um arquivo
+        results_savedir='output/results_battle/'
+        if not os.path.exists(results_savedir):
+            os.makedirs(results_savedir)
+        
+        with open(f'output/{model_name}_metrics.txt', 'w') as f:
+            f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
+            print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
 
 
-# in_channels = 3  # Por exemplo, RGB
-# out_channels = 3  # Saída de imagem RGB
-# base_filters = 64
-# num_layers = 4
-# use_batch_norm = True
-# model = Unet_model(in_channels, out_channels, base_filters, num_layers, use_batch_norm)
-x = torch.randn(1, 3, 256, 256)
-# print(model(x).shape,t.summary(model, input_size=(1, 3, 256, 256)))
-# Configuração de parâmetros
-# latent_dim = 16
-# hidden_dims = [32, 64, 128, 256]
-# input_channels = 3
-# output_channels = 3
-# model = VAE_model(input_channels=input_channels, hidden_dims=hidden_dims, latent_dim=latent_dim, output_channels=output_channels).to(device)
-# print(x.shape,t.summary(model, input_size=(1, 3, 256, 256)))
+    cleanup()
 
-# model = Vit_model(image_size=256, patch_size=16, num_channels=3, embed_dim=512, num_heads=8, mlp_dim=1024, num_layers=6, dropout=0.1)
+def train(rank, world_size, epochs):
+    
+    modelos = load_models()
+    loss_battle = []
 
-# print(x.shape,t.summary(model, input_size=(1, 3, 256, 256)))
+    loss_battle.extend(build_perceptual_losses())
+    loss_battle.extend(build_channel_losses())
+    loss_battle.extend(build_structural_losses())
 
-## carregar datasets
+    for model in modelos:
+        for loss_fn in loss_battle:
+            model_name = model.__class__.__name__ + "_" + loss_fn.__class__.__name__
+            train_one_model(rank, world_size, epochs, loss_fn, model_name, model)        
+        
+if __name__ == "__main__":
+    import argparse
 
-## Fazer combinacao de modelos e funcoes de perda
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs per model")
+    parser.add_argument("--nodes", type=int, default=1, help="Number of nodes")
+    parser.add_argument("--gpus", type=int, default=2, help="Number of GPUs per node")
+    args = parser.parse_args()
 
-## implementar ddp e torchrun para treinamento distribuido e acelerado
+    world_size = args.nodes * args.gpus
 
-## Treinar modelo 
+    torch.multiprocessing.spawn(train, args=(world_size, args.epochs), nprocs=args.gpus, join=True)
 
-## avaliar com as metricas // colocar metricas de validaçao
+
+
