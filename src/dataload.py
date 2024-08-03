@@ -5,69 +5,116 @@ import cv2
 import numpy as np
 import glob
 from torch.utils.data import DataLoader
-from torchvision import transforms
 import torch.utils.data as data
-import Albumentations as A
+from PIL import Image
+from torch.utils.data import Dataset, DataLoader
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, DistributedSampler, TensorDataset
+
+# import Albumentations as A
 from torch.utils.data import DataLoader
 
-def load_image_paths(dataset_path="data/", dataset: str= None, task="train",split=False):
-
+def load_image_paths(dataset_path="data", dataset: str = None, task="train", split=False):
     """
     Load paired datasets for training and testing.
-        dataset_path: endereço do dataset raiz
-        dataset: "UIEB", "EUVP", "HICRD", "LSUI", "TURBID"
-        task: "train", "val"
-        split:  True, False #split in 80% train and 20% test
-    return:
+    
+    Args:
+        dataset_path (str): Endereço do dataset raiz.
+        dataset (str): "UIEB", "EUVP", "HICRD", "LSUI", "TURBID".
+        task (str): "train", "val".
+        split (bool): True para dividir em 80% treino e 20% teste.
+    
+    Returns:
         list[paired_data]: data_raw, data_ref
     """
 
-    image_paths_raw,image_paths_ref = [],[]
-    # Constrói os padrões de caminho para os arquivos .jpg e .png dentro das pastas train e train/images
-    """if dataset == "EUVP":
-        pattern_png_raw = os.path.join(dataset_path, "*","/Paired/", "*","/train_A/", "*.jpg")
-        image_paths_raw.extend(glob.glob(pattern_png_raw))
-        pattern_png_ref = os.path.join(dataset_path, "*","/Paired/", "*","/train_B/", "*.jpg")
-        image_paths_ref.extend(glob.glob(pattern_png_ref))"""
+    image_paths_raw, image_paths_ref = [], []
+    
     if dataset == "UIEB":
-        pattern_png_raw = os.path.join(dataset_path, "*", "/raw-890/", "*.png")
+        pattern_png_raw = os.path.join(dataset_path, dataset, "raw-890", "*.png")
         image_paths_raw.extend(glob.glob(pattern_png_raw))
-        pattern_png_ref = os.path.join(dataset_path, "*", "/reference-890/", "*.png")
+        
+        pattern_png_ref = os.path.join(dataset_path, dataset, "reference-890", "*.png")
         image_paths_ref.extend(glob.glob(pattern_png_ref))
-        """elif dataset == "HICRD":
-        pattern_png_raw = os.path.join(dataset_path, "*", "/trainA_paired/", "*.png")
-        image_paths_raw.extend(glob.glob(pattern_png_raw))
-        pattern_png_ref = os.path.join(dataset_path, "*", "/trainB_paired/", "*.png")
-        image_paths_ref.extend(glob.glob(pattern_png_ref))"""
     
     elif dataset == "TURBID":
-        pattern_png_raw = os.path.join(dataset_path, "*", "*.jpg")
-        image_paths_raw.extend(glob.glob(pattern_png_raw))
-        image_paths_raw = [path for path in image_paths_raw if not path.endswith('ref.jpg')]
-        pattern_png_ref = os.path.join(dataset_path, "*", "ref.jpg")
-        for i in range(len(image_paths_raw)):
-            image_paths_ref.append(image_paths_ref[0])
+        pattern_jpg_raw = os.path.join(dataset_path, dataset, "*", "*.jpg")
+        all_image_paths_raw = glob.glob(pattern_jpg_raw)
+        image_paths_raw = [path for path in all_image_paths_raw if not path.endswith('ref.jpg')]
+        
+        pattern_jpg_ref = os.path.join(dataset_path, dataset, "*", "ref.jpg")
+        image_paths_ref = glob.glob(pattern_jpg_ref)
+    
     elif dataset == "LSUI":
-        pattern_png_raw = os.path.join(dataset_path, "*", "/input/", "*.jpg")
-        image_paths_raw.extend(glob.glob(pattern_png_raw))
-        pattern_png_ref = os.path.join(dataset_path, "*", "/GT/", "*.jpg")
-        image_paths_ref.extend(glob.glob(pattern_png_ref))
+        pattern_jpg_raw = os.path.join(dataset_path, dataset, "input", "*.jpg")
+        image_paths_raw.extend(glob.glob(pattern_jpg_raw))
+        
+        pattern_jpg_ref = os.path.join(dataset_path, dataset, "GT", "*.jpg")
+        image_paths_ref.extend(glob.glob(pattern_jpg_ref))
+    
     else:
         raise ValueError("Invalid dataset name\nPlease choose from ['UIEB', 'EUVP', 'HICRD', 'LSUI', 'TURBID']\n or add your own dataset")
     
-    # Embaralha os caminhos das imagens
-    if split == True:
-        # Divide os dados em 80% para treino e 20% para teste
+    if split:
         split_index = int(len(image_paths_raw) * 0.8)
-        train_paths = image_paths_raw[:split_index]
-        test_paths = image_paths_ref[split_index:]
-        train_paths = image_paths_raw[:split_index]
-        test_paths = image_paths_ref[split_index:]
+        train_paths_raw = image_paths_raw[:split_index]
+        test_paths_raw = image_paths_raw[split_index:]
         
-        return train_paths, test_paths
+        train_paths_ref = image_paths_ref[:split_index]
+        test_paths_ref = image_paths_ref[split_index:]
+        
+        return train_paths_raw, train_paths_ref, test_paths_raw, test_paths_ref
     else:
         return image_paths_raw, image_paths_ref
-    
+
+def save_image_path_file(image_paths, filename):
+    """
+    Salva uma lista de endereços de imagens em um arquivo .txt.
+
+    Args:
+        image_paths (list): Lista de endereços de imagens.
+        filename (str): Nome do arquivo .txt onde a lista será salva.
+    """
+    with open(filename, 'w') as file:
+        for path in image_paths:
+            file.write(f"{path}\n")
+def load_image_paths_file(filename):
+    """
+    Carrega uma lista de endereços de imagens a partir de um arquivo .txt.
+
+    Args:
+        filename (str): Nome do arquivo .txt de onde a lista será carregada.
+
+    Returns:
+        list: Lista de endereços de imagens.
+    """
+    with open(filename, 'r') as file:
+        image_paths = [line.strip() for line in file.readlines()]
+    return image_paths
+def file_exists(filename):
+    """
+    Verifica se um arquivo existe.
+
+    Args:
+        filename (str): Nome do arquivo a ser verificado.
+
+    Returns:
+        bool: True se o arquivo existe, False caso contrário.
+    """
+    return os.path.isfile(filename)
+def check_splits(dataset_path="data", dataset_name: str = None):
+    if file_exists(f"data/{dataset_name}/{dataset_name}_train_raw.txt") and file_exists(f"data/{dataset_name}/{dataset_name}_train_ref.txt") and file_exists(f"data/{dataset_name}/{dataset_name}_test_raw.txt") and file_exists(f"data/{dataset_name}/{dataset_name}_test_ref.txt"):
+        train_raw = load_image_paths_file(f"data/{dataset_name}/{dataset_name}_train_raw.txt")
+        train_ref = load_image_paths_file(f"data/{dataset_name}/{dataset_name}_train_ref.txt")
+        test_raw = load_image_paths_file(f"data/{dataset_name}/{dataset_name}_test_raw.txt")
+        test_ref = load_image_paths_file(f"data/{dataset_name}/{dataset_name}_test_ref.txt")
+    else:
+        train_raw, train_ref, test_raw, test_ref = load_image_paths(dataset_path=dataset_path, dataset=dataset_name, split=True)
+        save_image_path_file(train_raw, f"data/{dataset_name}/{dataset_name}_train_raw.txt")
+        save_image_path_file(train_ref, f"data/{dataset_name}/{dataset_name}_train_ref.txt")
+        save_image_path_file(test_raw, f"data/{dataset_name}/{dataset_name}_test_raw.txt")
+        save_image_path_file(test_ref, f"data/{dataset_name}/{dataset_name}_test_ref.txt")
+    return train_raw, train_ref, test_raw, test_ref
 
 def list_images(directory):
     """
@@ -86,132 +133,57 @@ def list_images(directory):
 
     return image_paths
 
-class load_data(data.Dataset):
-    def __init__(self, input_data_low, input_data_high):
-        self.input_data_low = input_data_low
-        self.input_data_high = input_data_high
-        print("Total training examples:", len(self.input_data_high))
-        self.transform=A.Compose(
-            [
-                A.Resize (height=256, width=256),
-                A.HorizontalFlip(p=0.5),
-                A.VerticalFlip(p=0.5),
-                ToTensorV2(),
-            ]
-        )
-        
 
-
-    def __len__(self):  
-        return len(self.input_data_low)
-    
-    def light_adjusts(self,image):
-        
-        mean = np.round(np.mean(image)/255,1)
-        std = np.round(np.std(image)/255,2)
-        self.transform_light_high = A.Compose([
-            A.ColorJitter(brightness=high_light_adjust(mean,std), contrast=0, saturation=0, hue=0, p=1.0),
+class PairedImageDataset(Dataset):
+    def __init__(self, raw_paths, ref_paths, transform=None):
+        self.raw_paths = raw_paths
+        self.ref_paths = ref_paths
+        self.transform =  transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.ToTensor()
         ])
-
-        self.transform_light_low = A.Compose([
-            A.ColorJitter(brightness=low_light_adjust(mean,std), contrast=0, saturation=0, hue=0, p=1.0),
-        ])
-        data_low = self.transform_light_low(image=image)["image"]
-        data_high = self.transform_light_high(image=image)["image"]
-
-        return  data_low, data_high
-
-    def __getitem__(self, idx):
-        seed = torch.random.seed()
-        data_low = cv2.imread(self.input_data_low[idx])
-
-        data_low=data_low[:,:,::-1].copy()
-        data_low, data_high = self.light_adjusts(image=data_low)
-        random.seed(1)
-        
-        data_low = self.transform(image=data_low)["image"]/255
-  
-
-        return [data_low, data_high,data_color,data_blur]
-
-
-
-class load_data_test(data.Dataset):
-    def __init__(self, input_data_low, input_data_high):
-        self.input_data_low = input_data_low
-        self.input_data_high = input_data_high
-        print("Total test-training examples:", len(self.input_data_high))
-        self.transform=A.Compose(
-            [
-                A.Resize (height=256, width=256),
-                ToTensorV2(),
-            ]
-        )
-
 
     def __len__(self):
-        return len(self.input_data_low)
-    
-    def light_adjusts(self,image):
-        
-        mean = np.round(np.mean(image)/255,1)
-        std = np.round(np.std(image)/255,2)
-        self.transform_light_high = A.Compose([
-            A.ColorJitter(brightness=high_light_adjust(mean,std), contrast=0, saturation=0, hue=0, p=1.0),
-        ])
-
-        self.transform_light_low = A.Compose([
-            A.ColorJitter(brightness=low_light_adjust(mean,std), contrast=0, saturation=0, hue=0, p=1.0),
-        ])
-        data_low = self.transform_light_low(image=image)["image"]
-        data_high = self.transform_light_high(image=image)["image"]
-
-        return  data_low, data_high
-
+        return len(self.raw_paths)
 
     def __getitem__(self, idx):
-        seed = torch.random.seed()
-        data_low = cv2.imread(self.input_data_low[idx])
+        raw_image = Image.open(self.raw_paths[idx]).convert("RGB")
+        ref_image = Image.open(self.ref_paths[idx]).convert("RGB")
 
-        data_low=data_low[:,:,::-1].copy()
-        #data_low, data_high = self.light_adjusts(image=data_low)
-        _, data_high = self.light_adjusts(image=data_low)
-        random.seed(1)
-        
-        data_low = self.transform(image=data_low)["image"]/255
-        
-       
+        if self.transform:
+            raw_image = self.transform(raw_image)
+            ref_image = self.transform(ref_image)
 
-        return [data_low, data_high,data_color,data_blur, self.input_data_low[idx]]
+        return raw_image, ref_image
 
+# Função de transformação
 
 """Creating dataloaders"""
 
 
 #Dataloader for LSUI
-def create_dataloader(dataset_name: str =None, dataset_path: str =None, batch_size=16, num_workers=4):
+def create_dataloader(dataset_name: str =None, dataset_path: str =None, batch_size=16, num_workers=4, ddp:bool = False, world_size=None, rank=None):
+   
    #load paths
-    train_paths, test_paths = load_image_paths(dataset_path=dataset_path, dataset = dataset_name, task=True, split=True)
-    
+    #train_raw, train_val,test_raw, test_val= load_image_paths(dataset_path=dataset_path, dataset = dataset_name, split=True)
+    train_raw, train_val, test_raw, test_val = check_splits(dataset_path=dataset_path, dataset_name = dataset_name)
     #initialize it
-    train_dataset = load_data(input_data_low=train_paths[0], input_data_high=train_paths[1])
-    test_dataset = load_data(input_data_low=test_paths[0], input_data_high=test_paths[1])
+    train_dataset = PairedImageDataset(raw_paths=train_raw, ref_paths=train_val)
+    test_dataset = PairedImageDataset(raw_paths=test_raw, ref_paths=test_val)
 
     #creating the DataLoaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    if ddp:
+        #sampler
+        sampler = DistributedSampler(train_dataset,sampler, num_replicas=world_size, rank=rank)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers)
+    else:
+        train_loader = DataLoader(train_dataset,sampler=sampler, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-    return train_loader, test_loader
-
-#dataloader UIEB
-train_loader_UIEB, test_loader_UIEB = create_dataloader(dataset_name="Uieb", dataset_path="data/UIEB")
-
-#dataloader TURBID
-train_loader_TURBID, test_loader_TURBID = create_dataloader(dataset_name="Turbid", dataset_path="data/TURBID")
-
-#dataloader LSUI
-train_loader_LSUI, test_loader_LSUI = create_dataloader(dataset_name="Lsui", dataset_path="data/LSUI")
-
+    if ddp:
+        return train_loader, test_loader, sampler
+    else:
+        return train_loader, test_loader
 
 
 

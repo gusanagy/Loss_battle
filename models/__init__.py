@@ -11,3 +11,5 @@ def VAE_model(input_channels:int = 3, hidden_dims: List[int] = [32, 64, 128, 256
     return VAE(input_channels, hidden_dims, latent_dim, output_channels)
 def Vit_model(image_size:int=256, patch_size:int=16, num_channels:int=3, embed_dim:int=512, num_heads:int=8, mlp_dim:int=1024, num_layers:int=6, dropout:int=0.1):
     return ImageEnhancerTransformer(image_size=image_size, patch_size=patch_size, num_channels=num_channels, embed_dim=embed_dim, num_heads=num_heads, mlp_dim=mlp_dim, num_layers=num_layers, dropout=dropout)
+def load_models():
+    return [Unet_model(), Vit_model(),VAE_model()]
