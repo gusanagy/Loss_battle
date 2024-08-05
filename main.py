@@ -20,92 +20,96 @@ def setup(rank, world_size):
 def cleanup():
     dist.destroy_process_group()
 
-class SimpleModel(nn.Module):
-    def __init__(self):
-        super(SimpleModel, self).__init__()
-        self.linear = nn.Linear(10, 1)
-
-    def forward(self, x):
-        return self.linear(x)
-
-def train_one_model(rank, world_size, epochs, loss_fn, model_name, model):
+def train_models(rank, world_size, epochs, loss_fn = None, model_name=None, model=None,dataset_name="UIEB", dataset_path="data"):
     setup(rank, world_size)
-
-    #dataloader UIEBUIEB
-    train_loader_UIEB, test_loader_UIEB,sampler = create_dataloader(dataset_name="UIEB", dataset_path="data",world_size=world_size,rank=rank,rank_test=0)
-
-    modell = model.cuda(rank)
-    ddp_model = DDP(modell, device_ids=[rank])
-
-    criterion = loss_fn().cuda(rank)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-5)
-
-    for epoch in range(epochs):
-        ddp_model.train()
-        sampler.set_epoch(epoch)
-        for batch_idx, (data, target) in enumerate(train_loader_UIEB):
-            data, target = data.cuda(rank), target.cuda(rank)
-
-            optimizer.zero_grad()
-            output = ddp_model(data)
-            loss = criterion(output, target)
-            loss.backward()
-            optimizer.step()
-
-            if batch_idx % 10 == 0:
-                print(f"Rank {rank}, Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
-    ##Salve Dir para salvar os checkpoints
     ckpt_savedir='output/ckpt_battle/'
     if not os.path.exists(ckpt_savedir):
         os.makedirs(ckpt_savedir)
-    if rank == 0:
-        # Salvar o estado do modelo original, não o DDP
-        torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_ckpt.pth")
-        psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
-        # Avaliar o modelo
-        model.eval()
-        with torch.no_grad():
-            for batch_idx, (data, target) in enumerate(test_loader_UIEB):
-                data, target = data.cuda(rank), target.cuda(rank)
-                output = model(data)
-                #calcula a metrica
-                targets = target.cpu().numpy()
-                predictions = model(data.cuda(rank)).cpu().numpy()
-                psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, targets)
-                psnr_list.append(psnr_value)
-                ssim_list.append(ssim_value)
-                uciqe_list.append(uciqe_)
-                uiqm_list.append(uiqm)
-        avg_ssim = sum(ssim_list) / len(ssim_list)
-        avg_psnr = sum(psnr_list) / len(psnr_list)
-        avg_uciqe = sum(uciqe_list) / len(uciqe_list)
-        avg_uiqm = sum(uiqm_list) / len(uiqm_list)
-           
-        # Salvar métricas em um arquivo
-        results_savedir='output/results_battle/'
-        if not os.path.exists(results_savedir):
-            os.makedirs(results_savedir)
-        
-        with open(f'output/{model_name}_metrics.txt', 'w') as f:
-            f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
-            print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
+    results_savedir='output/results_battle/'
+    if not os.path.exists(results_savedir):
+        os.makedirs(results_savedir)
 
-
-    cleanup()
-
-def train(rank, world_size, epochs):
-    
     modelos = load_models()
     loss_battle = []
 
-    loss_battle.extend(build_perceptual_losses())
+    loss_battle.extend(build_perceptual_losses(rank=rank))
     loss_battle.extend(build_channel_losses())
     loss_battle.extend(build_structural_losses())
 
+    print(f"{len(loss_battle)} loss functions to train with")
+    print(f"{len(modelos)} models to train with")
+     
+    #dataloader UIEB
+    train_loader_UIEB, test_loader_UIEB, sampler = create_dataloader(dataset_name=dataset_name, dataset_path=dataset_path,world_size=world_size,rank=rank)
     for model in modelos:
         for loss_fn in loss_battle:
+            print(f"Training {model.__class__.__name__} with {loss_fn.__class__.__name__}")
             model_name = model.__class__.__name__ + "_" + loss_fn.__class__.__name__
-            train_one_model(rank, world_size, epochs, loss_fn, model_name, model)        
+            ddp_model = DDP(model.cuda(rank), device_ids=[rank])
+            optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-5)
+
+            for epoch in range(epochs):
+                ddp_model.train()
+                sampler.set_epoch(epoch)
+                for batch_idx, (data, target) in tqdm(enumerate(train_loader_UIEB)):
+                    data, target = data.cuda(rank), target.cuda(rank)
+
+                    output = ddp_model(data)
+                    loss = loss_fn(output, target)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+
+                    # if batch_idx % 10 == 0:
+                    #     print(f"Rank {rank}, Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+            ##Salve Dir para salvar os checkpoints
+            if rank == 0:
+                print(f"Testando o modelo {model_name}")
+                # Salvar o estado do modelo original, não o DDP
+                torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_ckpt.pth")
+                psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
+                # Avaliar o modelo
+                model.eval()
+                with torch.no_grad():
+                    for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+                        data, target = data.cuda(rank), target.cpu().numpy()
+                        predictions = model(data).cpu().numpy()
+                        #calcula a metrica
+                        
+                        psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+                        psnr_list.append(psnr_value)
+                        ssim_list.append(ssim_value)
+                        uciqe_list.append(uciqe_)
+                        uiqm_list.append(uiqm)
+                avg_ssim = sum(ssim_list) / len(ssim_list)
+                avg_psnr = sum(psnr_list) / len(psnr_list)
+                avg_uciqe = sum(uciqe_list) / len(uciqe_list)
+                avg_uiqm = sum(uiqm_list) / len(uiqm_list)
+                
+                # Salvar métricas em um arquivo
+                
+                
+                with open(f'{results_savedir}{model_name}_metrics.txt', 'w') as f:
+                    f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
+                    print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
+
+            cleanup()
+
+# def train(rank, world_size, epochs):
+    
+#     modelos = load_models()
+#     loss_battle = []
+
+#     loss_battle.extend(build_perceptual_losses())
+#     loss_battle.extend(build_channel_losses())
+#     loss_battle.extend(build_structural_losses())
+#     print(f"{len(loss_battle)} loss functions to train with")
+#     print(f"{len(modelos)} models to train with")
+#     for model in modelos:
+#         for loss_fn in loss_battle:
+#             print(f"Training {model.__class__.__name__} with {loss_fn.__class__.__name__}")
+#             model_name = model.__class__.__name__ + "_" + loss_fn.__class__.__name__
+#             train_one_model(rank, world_size, epochs, loss_fn, model_name, model)        
         
 if __name__ == "__main__":
     import argparse
@@ -118,7 +122,7 @@ if __name__ == "__main__":
 
     world_size = args.nodes * args.gpus
 
-    torch.multiprocessing.spawn(train, args=(world_size, args.epochs), nprocs=args.gpus, join=True)
+    torch.multiprocessing.spawn(train_models, args=(world_size, args.epochs), nprocs=args.gpus, join=True)
 
 
 

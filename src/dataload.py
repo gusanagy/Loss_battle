@@ -103,7 +103,7 @@ def file_exists(filename):
     """
     return os.path.isfile(filename)
 def check_splits(dataset_path="data", dataset_name: str = None):
-    if file_exists(f"data/{dataset_name}/{dataset_name}_train_raw.txt") and file_exists(f"data/{dataset_name}/{dataset_name}_train_ref.txt") and file_exists(f"data/{dataset_name}/{dataset_name}_test_raw.txt") and file_exists(f"data/{dataset_name}/{dataset_name}_test_ref.txt"):
+    if file_exists(f"data/{dataset_name}/{dataset_name}_train_raw.txt") or file_exists(f"data/{dataset_name}/{dataset_name}_train_ref.txt") or file_exists(f"data/{dataset_name}/{dataset_name}_test_raw.txt") or file_exists(f"data/{dataset_name}/{dataset_name}_test_ref.txt"):
         train_raw = load_image_paths_file(f"data/{dataset_name}/{dataset_name}_train_raw.txt")
         train_ref = load_image_paths_file(f"data/{dataset_name}/{dataset_name}_train_ref.txt")
         test_raw = load_image_paths_file(f"data/{dataset_name}/{dataset_name}_test_raw.txt")
@@ -162,11 +162,12 @@ class PairedImageDataset(Dataset):
 
 
 #Dataloader for LSUI
-def create_dataloader(dataset_name: str =None, dataset_path: str =None, batch_size=16, num_workers=4, ddp:bool = False, world_size=None, rank=None):
+def create_dataloader(dataset_name: str =None, dataset_path: str =None, batch_size=16, num_workers=4, ddp:bool = True, world_size=None, rank=None):
    
    #load paths
     #train_raw, train_val,test_raw, test_val= load_image_paths(dataset_path=dataset_path, dataset = dataset_name, split=True)
     train_raw, train_val, test_raw, test_val = check_splits(dataset_path=dataset_path, dataset_name = dataset_name)
+    print(f"Train raw: {len(train_raw)} Train ref: {len(train_val)} Test raw: {len(test_raw)} Test ref: {len(test_val)}\n")
     #initialize it
     train_dataset = PairedImageDataset(raw_paths=train_raw, ref_paths=train_val)
     test_dataset = PairedImageDataset(raw_paths=test_raw, ref_paths=test_val)
@@ -174,11 +175,11 @@ def create_dataloader(dataset_name: str =None, dataset_path: str =None, batch_si
     #creating the DataLoaders
     if ddp:
         #sampler
-        sampler = DistributedSampler(train_dataset,sampler, num_replicas=world_size, rank=rank)
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers)
+        sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=rank)
+        train_loader = DataLoader(train_dataset,sampler=sampler, batch_size=batch_size, num_workers=num_workers)
     else:
-        train_loader = DataLoader(train_dataset,sampler=sampler, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+        train_loader = DataLoader(train_dataset, shuffle=True, num_workers=num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     if ddp:
         return train_loader, test_loader, sampler

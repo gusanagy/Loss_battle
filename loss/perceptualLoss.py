@@ -75,7 +75,7 @@ class PerceptualLoss(nn.Module):
     @property
     def id(self):
         return self._id
-    def forward(self, x, y):
+    def forward(self, x, y)->torch.Tensor:
         # Normalize the inputs
         mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(x.device)
         std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(x.device)
@@ -95,7 +95,7 @@ class PerceptualLoss(nn.Module):
 
     def extract_features(self, x):
         features = []
-        for i, layer in enumerate(self.vgg):
+        for i, layer in enumerate(self.perceptual):
             x = layer(x)
             if i in self.layer_indices:
                 features.append(x)
