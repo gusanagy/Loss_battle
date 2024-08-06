@@ -7,7 +7,7 @@ from loss import *
 from models import *
 from src.dataload import *
 from metrics.metrics import *
-from tqdm.notebook import tqdm  # Use tqdm para ambientes locais, não notebook
+from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 
 def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dataset_name="UIEB", dataset_path="data"):
     ckpt_savedir = 'output/ckpt_battle/'
@@ -21,44 +21,38 @@ def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dat
     loss_battle = []
 
     loss_battle.extend(build_perceptual_losses(rank=device))
-    loss_battle.extend(build_channel_losses())
-    loss_battle.extend(build_structural_losses())
+    loss_battle.extend(build_channel_losses(rank = device))
+    loss_battle.extend(build_structural_losses(rank = device))
     
 
     print(f"{len(loss_battle)} loss functions to train with")
-    print(f"{len(modelos)} models to train with")
+    print(f"{len(modelos)} models to train with\n")
 
     # Dataloader UIEB
     train_loader_UIEB, test_loader_UIEB = create_dataloader(dataset_name=dataset_name, dataset_path=dataset_path,ddp=False)
 
     for model in modelos:
         for loss_fn in loss_battle:
-            print(f"Training {model.__class__.__name__} with {loss_fn.name}")
+            print(f"""Training: {model.__class__.__name__} with {loss_fn.name}""")
             model_name = model.__class__.__name__+'_'+ loss_fn.name
             model = model.to(device)  # Remova o rank
             optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-5)
 
             for epoch in tqdm(range(epochs)):
                 model.train()
-                for batch_idx, (data, target) in tqdm(enumerate(train_loader_UIEB)):
+                for batch_idx, (data, target) in enumerate(train_loader_UIEB):
                     data, target = data.cuda(), target.cuda()
                     optimizer.zero_grad()
                     output = model(data)
-                    loss = loss_fn(output, target)
-                    if not isinstance(loss, torch.Tensor):
-                        loss = torch.tensor(loss, dtype=torch.float32)
-                    # if not loss.requires_grad:
-                    loss = loss.clone().detach().requires_grad_(True)
-                    # Verifique se a perda é um tensor
-                    # Verifique se a perda é um tensor
                     
-                        
+                    loss = loss_fn(output, target).requires_grad_(True)
+
                     loss.backward()
                     optimizer.step()
-
                     ##Optionally print loss information
-                    if batch_idx % 10 == 0:
-                        print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+                    # if batch_idx % 100 == 0:
+                    #     print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+                    
 
             # Salve Dir para salvar os checkpoints
             print(f"Testando o modelo {model_name}")

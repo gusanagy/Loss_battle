@@ -10,19 +10,19 @@ import numpy as np
 from numpy import mean, round, transpose
 from typing import List
 
-def list_channel_loss(list_loss: List[str] = None):
+def list_channel_loss(list_loss: List[str] = None,rank=0):
     dict_loss = {
-    'angular_color_loss':angular_color_loss(),
-    'light_loss':light_loss(),
-    'dark_channel_loss':DarkChannelLoss(),
-    'lch_channel_loss':LCHChannelLoss(),
-    'lab_channel_loss':LabChannelLoss(), 
-    'yuv_channel_loss':YUVChannelLoss(),
-    'hsv_channel_loss':HSVChannelLoss(), 
-    'ycbcr_channel_loss':YCbCrChannelLoss(),
-    'cieluv_channel_loss':CIELUVChannelLoss(),
-    'yuv420_channel_loss:':YUV420ChannelLoss(),
-    'Histogram_loss':HistogramColorLoss()
+    'angular_color_loss':angular_color_loss().to(rank),
+    'light_loss':light_loss().to(rank),
+    'dark_channel_loss':DarkChannelLoss().to(rank),
+    'lch_channel_loss':LCHChannelLoss().to(rank),
+    'lab_channel_loss':LabChannelLoss().to(rank), 
+    'yuv_channel_loss':YUVChannelLoss().to(rank),
+    'hsv_channel_loss':HSVChannelLoss().to(rank), 
+    'ycbcr_channel_loss':YCbCrChannelLoss().to(rank),
+    'cieluv_channel_loss':CIELUVChannelLoss().to(rank),
+    'yuv420_channel_loss:':YUV420ChannelLoss().to(rank),
+    'Histogram_loss':HistogramColorLoss().to(rank)
                 }
     return_loss =[]
     for loss in list_loss:
@@ -31,7 +31,7 @@ def list_channel_loss(list_loss: List[str] = None):
         return_loss.append(dict_loss[loss])
     return return_loss
 
-"""Color Loss function"""##mudar nome %
+"""Angular Color Loss function"""##mudar nome %
 class angular_color_loss(nn.Module):
     def __init__(self,id:int = None):
         super(angular_color_loss, self).__init__()
@@ -110,7 +110,7 @@ class DarkChannelLoss(nn.Module):
         dark_target = dark_channel(target, self.patch_size)
         
         # Compute the loss
-        loss = F.mse_loss(dark_input, dark_target)
+        loss = F.mse_loss(dark_input, dark_target,reducrio='mean')
         return loss
 
 """LCH Channel Loss"""
@@ -186,9 +186,9 @@ class LCHChannelLoss(nn.Module):
         lch_target = lch_channel(target, self.patch_size)
         
         # Compute the loss
-        l_loss = F.mse_loss(lch_input[0], lch_target[0])
-        c_loss = F.mse_loss(lch_input[1], lch_target[1])
-        h_loss = F.mse_loss(lch_input[2], lch_target[2])
+        l_loss = F.mse_loss(lch_input[0], lch_target[0],reduction='mean')
+        c_loss = F.mse_loss(lch_input[1], lch_target[1],reduction='mean')
+        h_loss = F.mse_loss(lch_input[2], lch_target[2],reduction='mean')
         
         # Total loss
         loss = l_loss + c_loss + h_loss
@@ -675,9 +675,9 @@ class YUV420ChannelLoss(nn.Module):
         yuv420_target = yuv420_channel(target, self.patch_size)
 
         # Compute the loss
-        y_loss = F.mse_loss(yuv420_input[0], yuv420_target[0])
-        u_loss = F.mse_loss(yuv420_input[1], yuv420_target[1])
-        v_loss = F.mse_loss(yuv420_input[2], yuv420_target[2])
+        y_loss = F.mse_loss(yuv420_input[0], yuv420_target[0],reduction='mean')
+        u_loss = F.mse_loss(yuv420_input[1], yuv420_target[1],reduction='mean')
+        v_loss = F.mse_loss(yuv420_input[2], yuv420_target[2],reduction='mean')
 
         # Total loss
         loss = y_loss + u_loss + v_loss
@@ -737,7 +737,7 @@ class HistogramColorLoss(nn.Module):
         hist_target = self.compute_histogram(target, self.bins)
         
         # Calculate the histogram loss
-        loss = F.mse_loss(hist_input, hist_target)
+        loss = F.mse_loss(hist_input, hist_target,reduction='mean')
         return loss
 
 

@@ -9,7 +9,7 @@ from loss import *
 from models import *
 from src.dataload import *
 from metrics.metrics import *
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 
 def setup(rank, world_size):
@@ -32,36 +32,46 @@ def train_models(rank, world_size, epochs, loss_fn = None, model_name=None, mode
     modelos = load_models()
     loss_battle = []
 
-    loss_battle.extend(build_perceptual_losses(rank=rank))
-    loss_battle.extend(build_channel_losses())
-    loss_battle.extend(build_structural_losses())
+    loss_battle.extend(build_perceptual_losses(rank= rank))
+    loss_battle.extend(build_channel_losses(rank = rank))
+    loss_battle.extend(build_structural_losses(rank = rank))
 
     print(f"{len(loss_battle)} loss functions to train with")
     print(f"{len(modelos)} models to train with")
-     
+    
     #dataloader UIEB
-    train_loader_UIEB, test_loader_UIEB, sampler = create_dataloader(dataset_name=dataset_name, dataset_path=dataset_path,world_size=world_size,rank=rank)
+    train_loader_UIEB, test_loader_UIEB, sampler = create_dataloader(dataset_name=dataset_name, dataset_path=dataset_path,world_size=world_size,rank=rank,ddp=True)
     for model in modelos:
+        ddp_model = DDP(model.cuda(rank), device_ids=[rank])
+        optimizer = torch.optim.AdamW(ddp_model.parameters(), lr=0.001, weight_decay=1e-5)
         for loss_fn in loss_battle:
             print(f"Training {model.__class__.__name__} with {loss_fn.__class__.__name__}")
             model_name = model.__class__.__name__ + "_" + loss_fn.__class__.__name__
-            ddp_model = DDP(model.cuda(rank), device_ids=[rank])
-            optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-5)
-
+            
             for epoch in range(epochs):
                 ddp_model.train()
                 sampler.set_epoch(epoch)
-                for batch_idx, (data, target) in tqdm(enumerate(train_loader_UIEB)):
+
+                if rank == 0:
+                    epoch_pbar = tqdm(total=len(train_loader_UIEB), desc=f"Epochs for {model_name}", position=0)
+                    
+                for batch_idx, (data, target) in enumerate(train_loader_UIEB):
                     data, target = data.cuda(rank), target.cuda(rank)
+                    optimizer.zero_grad()
 
                     output = ddp_model(data)
-                    loss = loss_fn(output, target)
-                    optimizer.zero_grad()
+                    loss = loss_fn(output, target).requires_grad_(True)
+                    
                     loss.backward()
                     optimizer.step()
 
-                    # if batch_idx % 10 == 0:
-                    #     print(f"Rank {rank}, Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+                    if batch_idx % 100 == 0:
+                        print(f"Rank {rank}, Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+                    if rank == 0:
+                        epoch_pbar.update(1)
+            
+            if rank == 0:
+                epoch_pbar.close()
             ##Salve Dir para salvar os checkpoints
             if rank == 0:
                 print(f"Testando o modelo {model_name}")

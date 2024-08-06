@@ -167,7 +167,7 @@ def create_dataloader(dataset_name: str =None, dataset_path: str =None, batch_si
    #load paths
     #train_raw, train_val,test_raw, test_val= load_image_paths(dataset_path=dataset_path, dataset = dataset_name, split=True)
     train_raw, train_val, test_raw, test_val = check_splits(dataset_path=dataset_path, dataset_name = dataset_name)
-    print(f"Train raw: {len(train_raw)} Train ref: {len(train_val)} Test raw: {len(test_raw)} Test ref: {len(test_val)}\n")
+    print(f"Train raw: {len(train_raw)} Train ref: {len(train_val)} \nTest raw: {len(test_raw)} Test ref: {len(test_val)}\n")
     #initialize it
     train_dataset = PairedImageDataset(raw_paths=train_raw, ref_paths=train_val)
     test_dataset = PairedImageDataset(raw_paths=test_raw, ref_paths=test_val)
