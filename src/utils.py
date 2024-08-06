@@ -32,8 +32,7 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
     # Salve Dir para salvar os checkpoints
     print(f"Testando o modelo {model_name}")
     # Salvar o estado do modelo original
-    model.load_state_dict(torch.load(PATH))
-    torch.load(model.state_dict(), f"{ckpt_savedir}{model_name}_ckpt.pth")
+    model.load_state_dict(torch.load(ckpt_path))
     psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
     
     # Avaliar o modelo
@@ -43,7 +42,7 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
             data, target = data.cuda(), target.cpu().numpy()
             predictions = model(data).cpu().numpy()
             print(predictions.shape)
-            #.detach().cpu().numpy()[0].transpose(1, 2, 0),0,1)[:,:,::-1]
+            #.detach().cpu().numpy()[0].transpose(1, 2, 0),0,1)[:,:,::-1]̂
             cv2.imwrite(f"{results_savedir}{model_name}_prediction.png", predictions*255)
 
             # Calcula a métrica
@@ -93,24 +92,24 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
 
 
     model.eval()
-            with torch.no_grad():
-                for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
-                    data, target = data.cuda(), target.cpu().numpy()
-                    predictions = model(data).cpu().numpy()
-                    # Calcula a métrica
-                    psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
-                    psnr_list.append(psnr_value)
-                    ssim_list.append(ssim_value)
-                    uciqe_list.append(uciqe_)
-                    uiqm_list.append(uiqm)̂
-            avg_ssim = sum(ssim_list) / len(ssim_list)
-            avg_psnr = sum(psnr_list) / len(psnr_list)
-            avg_uciqe = sum(uciqe_list) / len(uciqe_list)
-            avg_uiqm = sum(uiqm_list) / len(uiqm_list)
-            
-            # Salvar métricas em um arquivo
-            with open(f'{results_savedir}{model_name}_metrics.txt', 'w') as f:
-                f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
-                print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
+    with torch.no_grad():
+        for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+            data, target = data.cuda(), target.cpu().numpy()
+            predictions = model(data).cpu().numpy()
+            # Calcula a métrica
+            psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+            psnr_list.append(psnr_value)
+            ssim_list.append(ssim_value)
+            uciqe_list.append(uciqe_)
+            uiqm_list.append(uiqm)
+    avg_ssim = sum(ssim_list) / len(ssim_list)
+    avg_psnr = sum(psnr_list) / len(psnr_list)
+    avg_uciqe = sum(uciqe_list) / len(uciqe_list)
+    avg_uiqm = sum(uiqm_list) / len(uiqm_list)
+    
+    # Salvar métricas em um arquivo
+    with open(f'{results_savedir}{model_name}_metrics.txt', 'w') as f:
+        f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
+        print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
 
     pass

@@ -20,7 +20,7 @@ def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dat
     modelos = load_models()
     loss_battle = []
 
-    loss_battle.extend(build_perceptual_losses(rank=device))
+    #loss_battle.extend(build_perceptual_losses(rank=device))
     loss_battle.extend(build_channel_losses(rank = device))
     loss_battle.extend(build_structural_losses(rank = device))
     
@@ -58,28 +58,28 @@ def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dat
             print(f"Testando o modelo {model_name}")
             # Salvar o estado do modelo original
             torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_ckpt.pth")
-            psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
-            # Avaliar o modelo
-            model.eval()
-            with torch.no_grad():
-                for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
-                    data, target = data.cuda(), target.cpu().numpy()
-                    predictions = model(data).cpu().numpy()
-                    # Calcula a métrica
-                    psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
-                    psnr_list.append(psnr_value)
-                    ssim_list.append(ssim_value)
-                    uciqe_list.append(uciqe_)
-                    uiqm_list.append(uiqm)
-                    avg_ssim = sum(ssim_list) / len(ssim_list)
-            avg_psnr = sum(psnr_list) / len(psnr_list)
-            avg_uciqe = sum(uciqe_list) / len(uciqe_list)
-            avg_uiqm = sum(uiqm_list) / len(uiqm_list)
+            # psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
+            # # Avaliar o modelo
+            # model.eval()
+            # with torch.no_grad():
+            #     for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+            #         data, target = data.cuda(), target.cpu().numpy()
+            #         predictions = model(data).cpu().numpy()
+            #         # Calcula a métrica
+            #         psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+            #         psnr_list.append(psnr_value)
+            #         ssim_list.append(ssim_value)
+            #         uciqe_list.append(uciqe_)
+            #         uiqm_list.append(uiqm)
+            #         avg_ssim = sum(ssim_list) / len(ssim_list)
+            # avg_psnr = sum(psnr_list) / len(psnr_list)
+            # avg_uciqe = sum(uciqe_list) / len(uciqe_list)
+            # avg_uiqm = sum(uiqm_list) / len(uiqm_list)
             
-            # Salvar métricas em um arquivo
-            with open(f'{results_savedir}{model_name}_metrics.txt', 'w') as f:
-                f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
-                print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
+            # # Salvar métricas em um arquivo
+            # with open(f'{results_savedir}{model_name}_metrics.txt', 'w') as f:
+            #     f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
+            #     print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
 
 if __name__ == "__main__":
     import argparse

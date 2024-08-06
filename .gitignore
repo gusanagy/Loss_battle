@@ -1,3 +1,10 @@
 data
+output/ckpt_battle/UNet_HistogramColorLoss_ckpt.pth
+output/ckpt_battle/UNet_PerceptualLoss_alex_ckpt.pth
+output/ckpt_battle/UNet_PerceptualLoss_squeeze_ckpt.pth
+output/ckpt_battle/UNet_PerceptualLoss_vgg16_ckpt.pth
+output/ckpt_battle/UNet_PerceptualLoss_vgg19_ckpt.pth
+output/ckpt_battle/UNet_angular_color_loss_ckpt.pth
+output/ckpt_battle/UNet_PerceptualLoss_vgg11_ckpt.pth
 pytorch-CycleGAN-and-pix2pix
 __pycache__

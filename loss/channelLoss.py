@@ -110,7 +110,7 @@ class DarkChannelLoss(nn.Module):
         dark_target = dark_channel(target, self.patch_size)
         
         # Compute the loss
-        loss = F.mse_loss(dark_input, dark_target,reducrio='mean')
+        loss = F.mse_loss(dark_input, dark_target,reduction='mean')
         return loss
 
 """LCH Channel Loss"""
@@ -276,9 +276,9 @@ class LabChannelLoss(nn.Module):
         lab_target = lab_channel(target, self.patch_size)
         
         # Compute the loss
-        l_loss = F.mse_loss(lab_input[0], lab_target[0])
-        a_loss = F.mse_loss(lab_input[1], lab_target[1])
-        b_loss = F.mse_loss(lab_input[2], lab_target[2])
+        l_loss = F.mse_loss(lab_input[0], lab_target[0],reduction='mean')
+        a_loss = F.mse_loss(lab_input[1], lab_target[1],reduction='mean')
+        b_loss = F.mse_loss(lab_input[2], lab_target[2],reduction='mean')
         
         # Total loss
         loss = l_loss + a_loss + b_loss
@@ -348,9 +348,9 @@ class YUVChannelLoss(nn.Module):
         yuv_target = yuv_channel(target, self.patch_size)
         
         # Compute the loss
-        y_loss = F.mse_loss(yuv_input[0], yuv_target[0])
-        u_loss = F.mse_loss(yuv_input[1], yuv_target[1])
-        v_loss = F.mse_loss(yuv_input[2], yuv_target[2])
+        y_loss = F.mse_loss(yuv_input[0], yuv_target[0],reduction='mean')
+        u_loss = F.mse_loss(yuv_input[1], yuv_target[1],reduction='mean')
+        v_loss = F.mse_loss(yuv_input[2], yuv_target[2],reduction='mean')
         
         # Total loss
         loss = y_loss + u_loss + v_loss
@@ -436,9 +436,9 @@ class HSVChannelLoss(nn.Module):
         hsv_target = hsv_channel(target, self.patch_size)
 
         # Compute the loss
-        h_loss = F.mse_loss(hsv_input[0], hsv_target[0])
-        s_loss = F.mse_loss(hsv_input[1], hsv_target[1])
-        v_loss = F.mse_loss(hsv_input[2], hsv_target[2])
+        h_loss = F.mse_loss(hsv_input[0], hsv_target[0],reduction='mean')
+        s_loss = F.mse_loss(hsv_input[1], hsv_target[1],reduction='mean')
+        v_loss = F.mse_loss(hsv_input[2], hsv_target[2],reduction='mean')
 
         # Total loss
         loss = h_loss + s_loss + v_loss
