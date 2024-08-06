@@ -52,7 +52,7 @@ def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dat
                     ##Optionally print loss information
                     # if batch_idx % 100 == 0:
                     #     print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
-                    
+
 
             # Salve Dir para salvar os checkpoints
             print(f"Testando o modelo {model_name}")
@@ -71,7 +71,7 @@ def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dat
                     ssim_list.append(ssim_value)
                     uciqe_list.append(uciqe_)
                     uiqm_list.append(uiqm)
-            avg_ssim = sum(ssim_list) / len(ssim_list)
+                    avg_ssim = sum(ssim_list) / len(ssim_list)
             avg_psnr = sum(psnr_list) / len(psnr_list)
             avg_uciqe = sum(uciqe_list) / len(uciqe_list)
             avg_uiqm = sum(uiqm_list) / len(uiqm_list)

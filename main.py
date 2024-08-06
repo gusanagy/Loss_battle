@@ -54,7 +54,7 @@ def train_models(rank, world_size, epochs, loss_fn = None, model_name=None, mode
 
                 if rank == 0:
                     epoch_pbar = tqdm(total=len(train_loader_UIEB), desc=f"Epochs for {model_name}", position=0)
-                    
+
                 for batch_idx, (data, target) in enumerate(train_loader_UIEB):
                     data, target = data.cuda(rank), target.cuda(rank)
                     optimizer.zero_grad()
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     world_size = args.nodes * args.gpus
 
-    torch.multiprocessing.spawn(train_models, args=(world_size, args.epochs), nprocs=args.gpus, join=True)
+    torch.multiprocessing.spawn(main, args=(world_size, args.epochs), nprocs=args.gpus, join=True)
 
 
 
