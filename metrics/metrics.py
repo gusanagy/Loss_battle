@@ -469,18 +469,20 @@ def logamee(ch, blocksize=8):
     return plipmult(w, s)
 
 def calculate_metrics(corrected, gt_image):
+
+    psnr_value = PSNR(gt_image, corrected) # data_range=255)
+    ssim_value = SSIM(gt_image, corrected, multichannel=True, win_size=3,data_range=1.0)
+
     uciqe_ = uciqe(nargin=1,loc=corrected)#usarei este
     uiqm ,_ = nmetrics(corrected)#usarei o uiqm daqui
 
-    psnr_value = PSNR(gt_image, corrected) # data_range=255)
-    ssim_value = SSIM(gt_image, corrected, multichannel=True, win_size=3)
     return psnr_value, ssim_value, uciqe_, uiqm
 
-def main():
-    #dataset val // dataset inferencia // dataset // author
-    avaliacao = [ 
-        ("/home/gusanagy/Documents/Glown-Diffusion/data/UDWdata/UIEB/val","/home/gusanagy/Documents/Glown-Diffusion/data/UDWdata/UIEB/val", "Claudio", "UIEB")
-    ]
+def main(avaliacao = None):
+    #dataset val // dataset inferencia // author // dataset
+    # avaliacao = [ 
+    #     ("/home/gusanagy/Documents/Glown-Diffusion/data/UDWdata/UIEB/val","/home/gusanagy/Documents/Glown-Diffusion/data/UDWdata/UIEB/val", "Claudio", "UIEB")
+    # ]
 
     for candidato in avaliacao:
         result_path ,gt, author ,dataset = candidato

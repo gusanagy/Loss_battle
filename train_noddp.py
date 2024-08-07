@@ -20,10 +20,9 @@ def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dat
     modelos = load_models()
     loss_battle = []
 
-    #loss_battle.extend(build_perceptual_losses(rank=device))
-    loss_battle.extend(build_channel_losses(rank = device))
-    loss_battle.extend(build_structural_losses(rank = device))
-    
+    loss_battle.extend(build_perceptual_losses(rank=device))
+    #loss_battle.extend(build_channel_losses(rank = device))
+    #loss_battle.extend(build_structural_losses(rank = device))
 
     print(f"{len(loss_battle)} loss functions to train with")
     print(f"{len(modelos)} models to train with\n")
