@@ -46,7 +46,7 @@ class UNet(nn.Module):
     Implementação da arquitetura U-Net parametrizável para geração de imagens.
     Permite a parametrização do número de blocos de convolução e o uso de BatchNorm.
     """
-    def __init__(self, in_channels, out_channels, base_filters=64, num_layers=5, use_batch_norm=True):
+    def __init__(self, in_channels, out_channels, base_filters=16, num_layers=5, use_batch_norm=True):
         super(UNet, self).__init__()
 
         self.in_channels = in_channels

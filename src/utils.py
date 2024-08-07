@@ -48,7 +48,7 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
                 # print(f"""
                 # pred_img.shape: {pred_img.shape}
                 # data: {target_img.shape}
-                # print: {pred_img.max(),pred_img.min()}
+                # print: {pred_img.max(),p
                 # """)
                 # Normalizar se necessário (0-1)
                 if pred_img.max() > 1.0:
@@ -63,8 +63,8 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
                 #cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
 
                 # Calcula a métrica
-                #psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(pred_img, target_img)
-                #print(f"PSNR: {psnr_value}, SSIM: {ssim_value}, UCIQE: {uciqe_}, UIQM: {uiqm}")
+                psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(pred_img, target_img)
+                print(f"PSNR: {psnr_value}, SSIM: {ssim_value}, UCIQE: {uciqe_}, UIQM: {uiqm}")
             break
         #         psnr_list.append(psnr_value)
         #         ssim_list.append(ssim_value)
