@@ -10,3 +10,11 @@ def build_channel_losses(channel_loss: List[str] = ['Histogram_loss','angular_co
     return list_channel_loss(channel_loss)
 def build_structural_losses(structural_loss: List[str] = ['ssim', 'psnr', 'mse', 'gradientLoss'],rank = None):
     return list_structural_loss(structural_loss)
+
+# Função de perda para VAE com perda perceptual
+def loss_VAE(mu, logvar):
+    
+    # Perda KL-divergence
+    kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    
+    return  kl_loss

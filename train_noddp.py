@@ -7,22 +7,20 @@ from loss import *
 from models import *
 from src.dataload import *
 from metrics.metrics import *
+from src.utils import *
 from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 
 def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dataset_name="UIEB", dataset_path="data"):
-    ckpt_savedir = 'output/ckpt_battle/'
-    if not os.path.exists(ckpt_savedir):
-        os.makedirs(ckpt_savedir)
-    results_savedir = 'output/results_battle/'
-    if not os.path.exists(results_savedir):
-        os.makedirs(results_savedir)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    modelos = load_models()
-    loss_battle = []
+    
+    ckpt_savedir, results_savedir, txt_savedir = check_dir()
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    modelos = [VAE_model()]
+    loss_battle = []
     loss_battle.extend(build_perceptual_losses(rank=device))
-    #loss_battle.extend(build_channel_losses(rank = device))
-    #loss_battle.extend(build_structural_losses(rank = device))
+    loss_battle.extend(build_channel_losses(rank = device))
+    loss_battle.extend(build_structural_losses(rank = device))
 
     print(f"{len(loss_battle)} loss functions to train with")
     print(f"{len(modelos)} models to train with\n")
@@ -39,18 +37,32 @@ def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dat
 
             for epoch in tqdm(range(epochs)):
                 model.train()
-                for batch_idx, (data, target) in enumerate(train_loader_UIEB):
-                    data, target = data.cuda(), target.cuda()
-                    optimizer.zero_grad()
-                    output = model(data)
-                    
-                    loss = loss_fn(output, target).requires_grad_(True)
 
-                    loss.backward()
-                    optimizer.step()
-                    ##Optionally print loss information
-                    # if batch_idx % 100 == 0:
-                    #     print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+                if model.__class__.__name__ == 'VAE':
+                    for batch_idx, (data, target) in enumerate(train_loader_UIEB):
+                        data, target = data.cuda(), target.cuda()
+                        optimizer.zero_grad()
+                        output ,mu, logvar = model(data)
+                        loss = loss_fn(output, target)+loss_VAE(mu=mu, logvar=logvar)
+                        loss = loss.requires_grad_(True)
+                        loss.backward()
+                        optimizer.step()
+                        #Optionally print loss information
+                        # if batch_idx % 2 == 0:
+                        #     print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+                else:
+                    for batch_idx, (data, target) in enumerate(train_loader_UIEB):
+                        data, target = data.cuda(), target.cuda()
+                        optimizer.zero_grad()
+                        output = model(data)
+                        
+                        loss = loss_fn(output, target).requires_grad_(True)
+
+                        loss.backward()
+                        optimizer.step()
+                        ##Optionally print loss information
+                        # if batch_idx % 100 == 0:
+                        #     print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
 
 
             # Salve Dir para salvar os checkpoints

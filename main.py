@@ -72,36 +72,36 @@ def train_models(rank, world_size, epochs, loss_fn = None, model_name=None, mode
             
             if rank == 0:
                 epoch_pbar.close()
-            ##Salve Dir para salvar os checkpoints
-            if rank == 0:
-                print(f"Testando o modelo {model_name}")
-                # Salvar o estado do modelo original, não o DDP
-                torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_ckpt.pth")
-                psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
-                # Avaliar o modelo
-                model.eval()
-                with torch.no_grad():
-                    for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
-                        data, target = data.cuda(rank), target.cpu().numpy()
-                        predictions = model(data).cpu().numpy()
-                        #calcula a metrica
+            # ##Salve Dir para salvar os checkpoints
+            # if rank == 0:
+            #     print(f"Testando o modelo {model_name}")
+            #     # Salvar o estado do modelo original, não o DDP
+            #     torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_ckpt.pth")
+            #     psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
+            #     # Avaliar o modelo
+            #     model.eval()
+            #     with torch.no_grad():
+            #         for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+            #             data, target = data.cuda(rank), target.cpu().numpy()
+            #             predictions = model(data).cpu().numpy()
+            #             #calcula a metrica
                         
-                        psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
-                        psnr_list.append(psnr_value)
-                        ssim_list.append(ssim_value)
-                        uciqe_list.append(uciqe_)
-                        uiqm_list.append(uiqm)
-                avg_ssim = sum(ssim_list) / len(ssim_list)
-                avg_psnr = sum(psnr_list) / len(psnr_list)
-                avg_uciqe = sum(uciqe_list) / len(uciqe_list)
-                avg_uiqm = sum(uiqm_list) / len(uiqm_list)
+            #             psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+            #             psnr_list.append(psnr_value)
+            #             ssim_list.append(ssim_value)
+            #             uciqe_list.append(uciqe_)
+            #             uiqm_list.append(uiqm)
+            #     avg_ssim = sum(ssim_list) / len(ssim_list)
+            #     avg_psnr = sum(psnr_list) / len(psnr_list)
+            #     avg_uciqe = sum(uciqe_list) / len(uciqe_list)
+            #     avg_uiqm = sum(uiqm_list) / len(uiqm_list)
                 
-                # Salvar métricas em um arquivo
+            #     # Salvar métricas em um arquivo
                 
                 
-                with open(f'{results_savedir}{model_name}_metrics.txt', 'w') as f:
-                    f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
-                    print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
+            #     with open(f'{results_savedir}{model_name}_metrics.txt', 'w') as f:
+            #         f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
+            #         print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
 
             cleanup()
 
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     world_size = args.nodes * args.gpus
 
-    torch.multiprocessing.spawn(main, args=(world_size, args.epochs), nprocs=args.gpus, join=True)
+    torch.multiprocessing.spawn(train_models, args=(world_size, args.epochs), join=True)
 
 
 

@@ -36,6 +36,29 @@ def list_perceptual_loss(list_loss: List[str] = None, rank = None):
             raise ValueError(f"Unsupported perceptual model type\nPlease choose from {dict_loss.keys()}")
         return_loss.append(dict_loss[loss])
     return return_loss
+
+def list_perceptual_loss_lazy(list_loss: List[str] = None, rank = None):
+    dict_loss = {
+        'vgg11': None,
+        'vgg11_bn': None,
+        'vgg13': None,
+        'vgg13_bn': None,
+        'vgg16': None,
+        'vgg16_bn': None,
+        'vgg19': None,
+        'vgg19_bn': None,
+        'squeeze': None,
+        'alex': None
+    }
+    return_loss = []
+    for loss in list_loss:
+        if loss not in dict_loss.keys():
+            raise ValueError(f"Unsupported perceptual model type\nPlease choose from {dict_loss.keys()}")
+        if dict_loss[loss] is None:
+            return_loss.append(PerceptualLoss(model=loss).to(rank))
+    return return_loss
+
+
 # Definindo a PerceptualLoss
 class PerceptualLoss(nn.Module):
     def __init__(self, id: int = None, model='vgg16', layer_indices=None):
