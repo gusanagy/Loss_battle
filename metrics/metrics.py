@@ -33,7 +33,7 @@ import cv2
 import numpy as np
 
 
-def uciqe(nargin,loc):
+def uciqe(nargin=1,loc=None):
     #img_bgr = cv2.imread(loc)        # Used to read image files
      
     img_lab = cv2.cvtColor(loc, cv2.COLOR_BGR2LAB)  # Transform to Lab color space
@@ -470,11 +470,20 @@ def logamee(ch, blocksize=8):
 
 def calculate_metrics(corrected, gt_image):
 
+    print(f"""
+    Corrected shape: {corrected.shape}
+    GT shape: {gt_image.shape}""")
+
     psnr_value = PSNR(gt_image, corrected) # data_range=255)
+    print(f"PSNR: {psnr_value}")
     ssim_value = SSIM(gt_image, corrected, multichannel=True, win_size=3,data_range=1.0)
+    print(f"SSIM: {ssim_value}")
 
     uciqe_ = uciqe(nargin=1,loc=corrected)#usarei este
+    print(f"UCIQE: {uciqe_}")
+
     uiqm ,_ = nmetrics(corrected)#usarei o uiqm daqui
+    print(f"UIQM: {uiqm}")
 
     return psnr_value, ssim_value, uciqe_, uiqm
 

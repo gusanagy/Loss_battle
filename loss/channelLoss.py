@@ -319,7 +319,7 @@ class LabChannelLoss(nn.Module):
         
         # Total loss
         loss = l_loss + a_loss + b_loss
-        return loss/1000
+        return loss
 
 """YUV Channel Loss"""
 class YUVChannelLoss(nn.Module):
@@ -481,7 +481,7 @@ class HSVChannelLoss(nn.Module):
         #loss = (1/(h_loss + s_loss + v_loss))-1
         loss = h_loss + s_loss + v_loss
 
-        return loss/1000000
+        return loss
 
 """YcbCr Channel Loss"""
 class YCbCrChannelLoss(nn.Module):
@@ -778,6 +778,6 @@ class HistogramColorLoss(nn.Module):
         
         # Calculate the histogram loss
         loss = F.mse_loss(hist_input, hist_target,reduction='mean')
-        return loss/100
+        return loss
 
 

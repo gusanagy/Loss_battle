@@ -9,9 +9,9 @@ from src.dataload import *
 from metrics.metrics import *
 from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 import cv2
-from metrics import *
+from metrics.metrics import *
 
-def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", ckpt_path=None):
+def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", ckpt_path=None, metrics=True, plot=True, save=True):
     #"output/ckpt_battle/UNet_PerceptualLoss_vgg11_ckpt.pth"
     filename = ckpt_path.split('/')[-1].split('.')[0]
     results_savedir = f'output/results_battle/{filename}/'#modificar devido a estrutura de pastas
@@ -32,41 +32,52 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
     # Salvar o estado do modelo original
     model.load_state_dict(torch.load(ckpt_path))
     psnr_list, ssim_list, uciqe_list, uiqm_list = [], [], [], []
+
     
     # Avaliar o modelo
     model.eval()
     with torch.no_grad():
-        for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+        for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
+           
             data = data.cuda()
             target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
 
             predictions = model(data).cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
-            #print(f"pred.shape: {model(data)[:1]}")
+            
             for i in range(predictions.shape[0]):
+                name = ref_path[i].split('/')[-1]
+                print(f"ref path:  {name}")
+                
                 if i == 4:
                     break
                 pred_img = predictions[i][::-1]
                 target_img = target[i][::-1]
-                # print(f"""
-                # pred_img.shape: {pred_img.shape}
-                # data: {target_img.shape}
-                # print: {pred_img.max(),p
-                # """)
+                print(f"""
+                pred_img.shape: {pred_img.shape}
+                data: {target_img.shape}
+                print: {type(pred_img)}
+                """)
                 # Normalizar se necessário (0-1)
                 if pred_img.max() > 1.0:
                     pred_img = pred_img / 255.0
                 if target_img.max() > 1.0:
                     target_img = target_img / 255.0
-                plt.imshow(target_img)
-                plt.show()
-                plt.imshow(pred_img*255)
-                plt.show()
-                #Salvar a imagem predita
-                #cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
-
-                #Calcula a métrica
-                psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(pred_img, target_img)
-                print(f"PSNR: {psnr_value}, SSIM: {ssim_value}, UCIQE: {uciqe_}, UIQM: {uiqm}")
+                if plot is True:
+                    plt.imshow(target_img)
+                    plt.show()
+                    plt.imshow(pred_img)
+                    plt.show()
+                    plt.imshow(pred_img*255)
+                    plt.show()
+                if metrics is True:
+                    #Calcula a métrica
+                    print(f"Calculating metrics for {model_name}\n, uciqe: {uciqe(nargin=1,loc=pred_img)}, uiqm uciqe:{nmetrics(pred_img)}")    
+                    # psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+                    # print(f"PSNR: {psnr_value}, SSIM: {ssim_value}, UCIQE: {uciqe_}, UIQM: {uiqm}")
+                if save is True:
+                    #Salvar a imagem predita
+                    cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
+               
             break
         #         psnr_list.append(psnr_value)
         #         ssim_list.append(ssim_value)
@@ -100,7 +111,7 @@ def check_dir():
     return ckpt_savedir, results_savedir, txt_savedir
 
 
-def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dataset_name="UIEB", dataset_path="data"):
+def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dataset_name="UIEB", dataset_path="data", metrics=True, plot=True, save=True):
     #check directories
     ckpt_savedir, results_savedir, txt_savedir = check_dir()
     #Agnostic code
@@ -135,7 +146,7 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
             with torch.no_grad():
                     
                 if model.__class__.__name__ == 'VAE':
-                    for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+                    for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
                         if batch_idx == 1:
                             break
                         data, target = data.cuda(), target.cuda()
@@ -158,40 +169,42 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                                 pred_img = pred_img / 255.0
                             if target_img.max() > 1.0:
                                 target_img = target_img / 255.0
-                            # Criar uma figura com 1 linha e 3 colunas
-                            fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+                            
+                            if plot is True:
+                                # Criar uma figura com 1 linha e 3 colunas
+                                fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 
-                            # Mostrar cada imagem em um subplot
-                            axes[0].imshow(target_img)
-                            axes[0].set_title("Target")
-                            axes[0].axis('off')  # Desativar os eixos
-                            axes[1].imshow(pred_img)
-                            axes[1].set_title("Prediction*255")
-                            axes[1].axis('off')
-                            axes[2].imshow(pred_img*255)
-                            axes[2].set_title("Prediction")
-                            axes[2].axis('off')
+                                # Mostrar cada imagem em um subplot
+                                axes[0].imshow(target_img)
+                                axes[0].set_title("Target")
+                                axes[0].axis('off')  # Desativar os eixos
+                                axes[1].imshow(pred_img)
+                                axes[1].set_title("Prediction*255")
+                                axes[1].axis('off')
+                                axes[2].imshow(pred_img*255)
+                                axes[2].set_title("Prediction")
+                                axes[2].axis('off')
 
 
-                            # Ajustar o layout para evitar sobreposição
-                            plt.tight_layout()
+                                # Ajustar o layout para evitar sobreposição
+                                plt.tight_layout()
 
-                            # Exibir o multiplot
-                            plt.show()
+                                # Exibir o multiplot
+                                plt.show()
+                            if metrics is True:
+                                #Salvar a imagem predita
+                                cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
 
-                            #Salvar a imagem predita
-                            #cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
-
-                            # # Calcula a métrica
-                            # psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
-                        
-                            # psnr_list.append(psnr_value)
-                            # ssim_list.append(ssim_value)
-                            # uciqe_list.append(uciqe_)
-                            # uiqm_list.append(uiqm)
+                                # Calcula a métrica
+                                psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+                            
+                                psnr_list.append(psnr_value)
+                                ssim_list.append(ssim_value)
+                                uciqe_list.append(uciqe_)
+                                uiqm_list.append(uiqm)
                             
                 else:
-                        for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+                        for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
                             if batch_idx == 1:
                                 break
                             data, target = data.cuda(), target.cuda()
@@ -215,76 +228,75 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                                 if target_img.max() > 1.0:
                                     target_img = target_img / 255.0
 
-                                # Criar uma figura com 1 linha e 3 colunas
-                                fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+                                if plot is True:
+                                    # Criar uma figura com 1 linha e 3 colunas
+                                    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 
-                                # Mostrar cada imagem em um subplot
-                                axes[0].imshow(target_img)
-                                axes[0].set_title("Target")
-                                axes[0].axis('off')  # Desativar os eixos
+                                    # Mostrar cada imagem em um subplot
+                                    axes[0].imshow(target_img)
+                                    axes[0].set_title("Target")
+                                    axes[0].axis('off')  # Desativar os eixos
 
-                                axes[1].imshow(pred_img)
-                                axes[1].set_title("Prediction*255")
-                                axes[1].axis('off')
+                                    axes[1].imshow(pred_img)
+                                    axes[1].set_title("Prediction*255")
+                                    axes[1].axis('off')
 
-                                axes[2].imshow(pred_img*255)
-                                axes[2].set_title("Prediction")
-                                axes[2].axis('off')
+                                    axes[2].imshow(pred_img*255)
+                                    axes[2].set_title("Prediction")
+                                    axes[2].axis('off')
 
+                                    # Ajustar o layout para evitar sobreposição
+                                    plt.tight_layout()
 
-                                # Ajustar o layout para evitar sobreposição
-                                plt.tight_layout()
+                                    # Exibir o multiplot
+                                    plt.show()
 
-                                # Exibir o multiplot
-                                plt.show()
+                                if metrics is True:
+                                    #Salvar a imagem predita
+                                    cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
 
-                                #Salvar a imagem predita
-                                #cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
-
-                                # # Calcula a métrica
-                                # psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
-                        
-                                # psnr_list.append(psnr_value)
-                                # ssim_list.append(ssim_value)
-                                # uciqe_list.append(uciqe_)
-                                # uiqm_list.append(uiqm)
-                                            
-    
-       
-                """
-                #Ajustar script para apagar as variaveis sempre que salvar as metricas no disco  
-                #Salvar a imagem predita
-                cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
+                                    # Calcula a métrica
+                                    psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+                            
+                                    psnr_list.append(psnr_value)
+                                    ssim_list.append(ssim_value)
+                                    uciqe_list.append(uciqe_)
+                                    uiqm_list.append(uiqm)
+                                if save is True:                            
+                                    #Ajustar script para apagar as variaveis sempre que salvar as metricas no disco  
+                                    #Salvar a imagem predita
+                                    cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
                 
-                # Calcula a métrica
-                psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
-        
-                psnr_list.append(psnr_value)
-                ssim_list.append(ssim_value)
-                uciqe_list.append(uciqe_)
-                uiqm_list.append(uiqm)
+                if metrics is True:
+                    # Calcula a métrica
+                    psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+            
+                    psnr_list.append(psnr_value)
+                    ssim_list.append(ssim_value)
+                    uciqe_list.append(uciqe_)
+                    uiqm_list.append(uiqm)
+            if metrics is True:
+                #Calcula a media de cada metrica
+                avg_loss = sum(loss_list) / len(loss_list)
+                avg_ssim = sum(ssim_list) / len(ssim_list)
+                avg_psnr = sum(psnr_list) / len(psnr_list)
+                avg_uciqe = sum(uciqe_list) / len(uciqe_list)
+                avg_uiqm = sum(uiqm_list) / len(uiqm_list)
+                
+                # Salvar métricas em um arquivo
+                with open(f'{txt_savedir}{model_name}_metrics.txt', 'w') as f:
+                    f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}\navg_loss:{avg_loss}""")
+                    print(f"Metrics for {model_name} saved to {txt_savedir}{model_name}_metrics.txt") 
+                
+                avg_loss = 0.0
+                avg_ssim = 0.0
+                avg_psnr = 0.0
+                avg_uciqe = 0.0
+                avg_uiqm = 0.0
+                
+                psnr_list.clear()
+                ssim_list.clear()
+                uciqe_list.clear()
+                uiqm_list.clear()
     
-    #Calcula a media de cada metrica
-    avg_loss = sum(loss_list) / len(loss_list)
-    avg_ssim = sum(ssim_list) / len(ssim_list)
-    avg_psnr = sum(psnr_list) / len(psnr_list)
-    avg_uciqe = sum(uciqe_list) / len(uciqe_list)
-    avg_uiqm = sum(uiqm_list) / len(uiqm_list)
-    
-    # Salvar métricas em um arquivo
-    with open(f'{txt_savedir}{model_name}_metrics.txt', 'w') as f:"""
-        # f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}\navg_loss:{avg_loss}""")
-        # print(f"Metrics for {model_name} saved to {txt_savedir}{model_name}_metrics.txt") 
-    """ 
-    avg_loss = 0.0
-    avg_ssim = 0.0
-    avg_psnr = 0.0
-    avg_uciqe = 0.0
-    avg_uiqm = 0.0
-    
-    psnr_list.remove(all)
-    ssim_list.remove(all)
-    uciqe_list.remove(all)
-    uiqm_list.remove(all)
-    """
     pass

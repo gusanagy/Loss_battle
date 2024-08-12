@@ -156,6 +156,28 @@ class PairedImageDataset(Dataset):
 
         return raw_image, ref_image
 
+
+class PairedImageDatasetName(Dataset):
+    def __init__(self, raw_paths, ref_paths, transform=None):
+        self.raw_paths = raw_paths
+        self.ref_paths = ref_paths
+        self.transform =  transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.ToTensor()
+        ])
+
+    def __len__(self):
+        return len(self.raw_paths)
+
+    def __getitem__(self, idx):
+        raw_image = Image.open(self.raw_paths[idx]).convert("RGB")
+        ref_image = Image.open(self.ref_paths[idx]).convert("RGB")
+
+        if self.transform:
+            raw_image = self.transform(raw_image)
+            ref_image = self.transform(ref_image)
+
+        return raw_image, ref_image, self.ref_paths[idx]
 # Função de transformação
 
 """Creating dataloaders"""
@@ -170,7 +192,7 @@ def create_dataloader(dataset_name: str =None, dataset_path: str =None, batch_si
     print(f"Train raw: {len(train_raw)} Train ref: {len(train_val)} \nTest raw: {len(test_raw)} Test ref: {len(test_val)}\n")
     #initialize it
     train_dataset = PairedImageDataset(raw_paths=train_raw, ref_paths=train_val)
-    test_dataset = PairedImageDataset(raw_paths=test_raw, ref_paths=test_val)
+    test_dataset = PairedImageDatasetName(raw_paths=test_raw, ref_paths=test_val)
 
     #creating the DataLoaders
     if ddp:
