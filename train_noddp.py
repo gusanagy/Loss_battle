@@ -18,9 +18,13 @@ def train_models(epochs: int=100, model_name=None, models: List[str] =['Unet', '
 
     modelos = load_models(models=models)
     loss_battle = []
-    loss_battle.extend(build_perceptual_losses(perceptual_loss=perceptual_loss,rank=device))
-    loss_battle.extend(build_channel_losses(channel_loss=channel_loss,rank = device))
-    loss_battle.extend(build_structural_losses(structural_loss=structural_loss,rank = device))
+    
+    if perceptual_loss is not None:
+        loss_battle.extend(build_perceptual_losses(perceptual_loss=perceptual_loss,rank=device))
+    if channel_loss is not None:
+        loss_battle.extend(build_channel_losses(channel_loss=channel_loss,rank = device))
+    if structural_loss is not None:
+         loss_battle.extend(build_structural_losses(structural_loss=structural_loss,rank = device))
 
     print(f"{len(loss_battle)} loss functions to train with")
     print(f"{len(modelos)} models to train with\n")

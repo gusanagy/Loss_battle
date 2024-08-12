@@ -64,9 +64,9 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
                 #Salvar a imagem predita
                 #cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
 
-                # Calcula a métrica
-                #psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(pred_img, target_img)
-                #print(f"PSNR: {psnr_value}, SSIM: {ssim_value}, UCIQE: {uciqe_}, UIQM: {uiqm}")
+                #Calcula a métrica
+                psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(pred_img, target_img)
+                print(f"PSNR: {psnr_value}, SSIM: {ssim_value}, UCIQE: {uciqe_}, UIQM: {uiqm}")
             break
         #         psnr_list.append(psnr_value)
         #         ssim_list.append(ssim_value)
