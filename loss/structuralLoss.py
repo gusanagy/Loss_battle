@@ -148,7 +148,6 @@ class GradientLossOpenCV(nn.Module):
 class SSIMLoss(nn.Module):
     def __init__(self, id: int = None):
         super(SSIMLoss, self).__init__()
-        self.criterion = ssim
         self._id = id
 
     @property
@@ -160,13 +159,12 @@ class SSIMLoss(nn.Module):
         return self._id
 
     def forward(self, input, target):
-        return self.criterion(input, target, window_size=11, max_val=1.0)
+        return ssim(input, target, window_size=11, max_val=1.0)
 
 """PSNR Loss function"""#%
 class PSNRLoss(nn.Module):
     def __init__(self, id: int = None):
         super(PSNRLoss, self).__init__()
-        self.criterion = psnr
         self._id = id
 
     @property
@@ -178,13 +176,12 @@ class PSNRLoss(nn.Module):
         return self._id
 
     def forward(self, input, target):
-        return self.criterion(input, target, max_val=1.0)
+        return psnr(input, target, max_val=1.0)
 
 """MS-SSIM Loss function"""
 class MSSSIMLoss(nn.Module):
     def __init__(self, id: int = None):
         super(MSSSIMLoss, self).__init__()
-        self.criterion = ms_ssim()
         self._id = id
 
     @property
@@ -196,13 +193,12 @@ class MSSSIMLoss(nn.Module):
         return self._id
 
     def forward(self, input, target):
-        return self.criterion(input, target)
+        return  ms_ssim(input, target)
 
 """Charbonnier Loss function"""
 class CharbonnierLoss(nn.Module):
     def __init__(self, id: int = None):
         super(CharbonnierLoss, self).__init__()
-        self.criterion = charbonnier
         self._id = id
 
     @property
@@ -214,7 +210,7 @@ class CharbonnierLoss(nn.Module):
         return self._id
 
     def forward(self, input, target):
-        return self.criterion(input, target)
+        return charbonnier(input, target)
 
 
 
