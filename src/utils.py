@@ -123,7 +123,7 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
 
     for model in modelos:
         for loss_fn in loss_battle:
-            print(f"""Training: {model.__class__.__name__} with {loss_fn.name}""")
+            print(f"""Testing: {model.__class__.__name__} with {loss_fn.name}""")
             model_name = model.__class__.__name__+'_'+ loss_fn.name
 
             model = model.to(device)  # Remova o rank
@@ -136,15 +136,20 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                     
                 if model.__class__.__name__ == 'VAE':
                     for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+                        if batch_idx == 1:
+                            break
                         data, target = data.cuda(), target.cuda()
                             
                         output ,mu, logvar = model(data)
                         loss = loss_fn(output, target)+loss_VAE(mu=mu, logvar=logvar)
-                            
+                        
                         #transformando para numpy para calcular as métricas
                         target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
                         predictions = output.cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                         for i in range(predictions.shape[0]):
+
+                            if i == 1:
+                                break
                             pred_img = predictions[i][::-1]
                             target_img = target[i][::-1]
 
@@ -154,16 +159,18 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                             if target_img.max() > 1.0:
                                 target_img = target_img / 255.0
                             # Criar uma figura com 1 linha e 3 colunas
-                            fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+                            fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 
                             # Mostrar cada imagem em um subplot
                             axes[0].imshow(target_img)
                             axes[0].set_title("Target")
                             axes[0].axis('off')  # Desativar os eixos
-
                             axes[1].imshow(pred_img)
-                            axes[1].set_title("Prediction")
+                            axes[1].set_title("Prediction*255")
                             axes[1].axis('off')
+                            axes[2].imshow(pred_img*255)
+                            axes[2].set_title("Prediction")
+                            axes[2].axis('off')
 
 
                             # Ajustar o layout para evitar sobreposição
@@ -185,6 +192,8 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                             
                 else:
                         for batch_idx, (data, target) in tqdm(enumerate(test_loader_UIEB)):
+                            if batch_idx == 1:
+                                break
                             data, target = data.cuda(), target.cuda()
                             
                             output = model(data)
@@ -195,6 +204,8 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                             target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
                             predictions = output.cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                             for i in range(predictions.shape[0]):
+                                if i == 1:
+                                    break
                                 pred_img = predictions[i][::-1]
                                 target_img = target[i][::-1]
 
@@ -205,7 +216,7 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                                     target_img = target_img / 255.0
 
                                 # Criar uma figura com 1 linha e 3 colunas
-                                fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+                                fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 
                                 # Mostrar cada imagem em um subplot
                                 axes[0].imshow(target_img)
@@ -213,8 +224,12 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                                 axes[0].axis('off')  # Desativar os eixos
 
                                 axes[1].imshow(pred_img)
-                                axes[1].set_title("Prediction")
+                                axes[1].set_title("Prediction*255")
                                 axes[1].axis('off')
+
+                                axes[2].imshow(pred_img*255)
+                                axes[2].set_title("Prediction")
+                                axes[2].axis('off')
 
 
                                 # Ajustar o layout para evitar sobreposição
@@ -272,5 +287,4 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
     uciqe_list.remove(all)
     uiqm_list.remove(all)
     """
-
     pass
