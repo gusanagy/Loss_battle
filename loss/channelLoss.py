@@ -31,6 +31,35 @@ def list_channel_loss(list_loss: List[str] = None,rank=0):
         return_loss.append(dict_loss[loss])
     return return_loss
 
+
+def normalize_loss_output(func):
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        
+        result  = (1/result)-1
+
+        # Lidar com valores infinitos no tensor
+        result = torch.where(torch.isinf(result), torch.tensor(1.0), result)
+        result = torch.where(result == -float('inf'), torch.tensor(0.0), result)
+        
+        
+        # # Obter o valor mínimo e máximo do tensor
+        # min_val = torch.min(result)
+        # max_val = torch.max(result)
+        
+        # # Normalização para o intervalo [0, 1]
+        # if max_val > min_val:
+        #     normalized_result = (result - min_val) / (max_val - min_val)
+        # else:
+        #     normalized_result = torch.zeros_like(result)
+        
+        # # Garantir que o tensor esteja no intervalo [0, 1]
+        # normalized_result = torch.clamp(normalized_result, 0, 1)
+        
+        return result
+    
+    return wrapper
+
 """Angular Color Loss function"""##mudar nome %
 class angular_color_loss(nn.Module):
     def __init__(self,id:int = None):
@@ -87,6 +116,7 @@ class DarkChannelLoss(nn.Module):
     @property
     def id(self):
         return self._id
+    @normalize_loss_output
     def forward(self, input, target):
         """
         Compute the Dark Channel Loss between the input and target images.
@@ -111,7 +141,7 @@ class DarkChannelLoss(nn.Module):
         
         # Compute the loss
         loss = F.mse_loss(dark_input, dark_target,reduction='mean')
-        return loss
+        return (1/loss)-1
 
 """LCH Channel Loss"""
 class LCHChannelLoss(nn.Module):
@@ -154,19 +184,8 @@ class LCHChannelLoss(nn.Module):
         h = torch.atan2(x - y.pow(1/3), y - z)
         
         return torch.stack([l, c, h], dim=1)
-
-    def forward(self, input, target):
-        """
-        Compute the LCH Channel Loss between the input and target images.
-        
-        Args:
-            input (Tensor): The predicted image with shape (N, C, H, W).
-            target (Tensor): The ground truth image with shape (N, C, H, W).
-        
-        Returns:
-            Tensor: The LCH Channel Loss value.
-        """
-        def lch_channel(image, patch_size):
+    
+    def _lch_channel(self,image, patch_size:int  = 5):
             # Compute the LCH channels of an image
             lch = self.rgb_to_lch(image)
             l = lch[:, 0, :, :]
@@ -180,10 +199,23 @@ class LCHChannelLoss(nn.Module):
             h_channel = F.conv2d(h.unsqueeze(1), kernel, stride=1, padding=patch_size//2)
             
             return l_channel, c_channel, h_channel
+
+    def forward(self, input, target):
+        """
+        Compute the LCH Channel Loss between the input and target images.
+        
+        Args:
+            input (Tensor): The predicted image with shape (N, C, H, W).
+            target (Tensor): The ground truth image with shape (N, C, H, W).
+        
+        Returns:
+            Tensor: The LCH Channel Loss value.
+        """
+        
         
         # Compute LCH channels
-        lch_input = lch_channel(input, self.patch_size)
-        lch_target = lch_channel(target, self.patch_size)
+        lch_input = self._lch_channel(input, self.patch_size)
+        lch_target = self._lch_channel(target, self.patch_size)
         
         # Compute the loss
         l_loss = F.mse_loss(lch_input[0], lch_target[0],reduction='mean')
@@ -192,7 +224,7 @@ class LCHChannelLoss(nn.Module):
         
         # Total loss
         loss = l_loss + c_loss + h_loss
-        return loss
+        return (1/loss)-1
 
 """Lab Channel"""#%
 class LabChannelLoss(nn.Module):
@@ -282,7 +314,7 @@ class LabChannelLoss(nn.Module):
         
         # Total loss
         loss = l_loss + a_loss + b_loss
-        return loss
+        return (1/loss)-1
 
 """YUV Channel Loss"""
 class YUVChannelLoss(nn.Module):
@@ -404,7 +436,7 @@ class HSVChannelLoss(nn.Module):
         h = (h + 1) % 1
 
         return torch.stack([h, s, max_val], dim=1)
-
+    @normalize_loss_output
     def forward(self, input, target):
         """
         Compute the HSV Channel Loss between the input and target images.
@@ -441,7 +473,9 @@ class HSVChannelLoss(nn.Module):
         v_loss = F.mse_loss(hsv_input[2], hsv_target[2],reduction='mean')
 
         # Total loss
+        #loss = (1/(h_loss + s_loss + v_loss))-1
         loss = h_loss + s_loss + v_loss
+
         return loss
 
 """YcbCr Channel Loss"""
@@ -717,6 +751,7 @@ class HistogramColorLoss(nn.Module):
         
         return torch.stack(histograms, dim=1)  # Shape (N, C, bins)
 
+    @normalize_loss_output
     def forward(self, input, target):
         """
         Compute the histogram color loss between the input and target images.
@@ -738,6 +773,6 @@ class HistogramColorLoss(nn.Module):
         
         # Calculate the histogram loss
         loss = F.mse_loss(hist_input, hist_target,reduction='mean')
-        return loss
+        return (1/loss)-1
 
 
