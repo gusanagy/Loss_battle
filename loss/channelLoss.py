@@ -11,6 +11,8 @@ from numpy import mean, round, transpose
 from typing import List
 
 def list_channel_loss(list_loss: List[str] = None,rank=0):
+    if list_loss == None:
+        return []
     dict_loss = {
     'angular_color_loss':angular_color_loss().to(rank),
     'light_loss':light_loss().to(rank),
@@ -36,7 +38,7 @@ def normalize_loss_output(func):
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         
-        result  = (1/result)-1
+        result  = 1-(1/result)
 
         # Lidar com valores infinitos no tensor
         result = torch.where(torch.isinf(result), torch.tensor(1.0), result)
@@ -141,7 +143,7 @@ class DarkChannelLoss(nn.Module):
         
         # Compute the loss
         loss = F.mse_loss(dark_input, dark_target,reduction='mean')
-        return (1/loss)-1
+        return loss
 
 """LCH Channel Loss"""
 class LCHChannelLoss(nn.Module):
@@ -314,7 +316,7 @@ class LabChannelLoss(nn.Module):
         
         # Total loss
         loss = l_loss + a_loss + b_loss
-        return (1/loss)-1
+        return loss
 
 """YUV Channel Loss"""
 class YUVChannelLoss(nn.Module):
@@ -773,6 +775,6 @@ class HistogramColorLoss(nn.Module):
         
         # Calculate the histogram loss
         loss = F.mse_loss(hist_input, hist_target,reduction='mean')
-        return (1/loss)-1
+        return loss
 
 

@@ -10,17 +10,17 @@ from metrics.metrics import *
 from src.utils import *
 from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 
-def train_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dataset_name="UIEB", dataset_path="data"):
+def train_models(epochs: int=100, model_name=None, models: List[str] =['Unet', 'Vit', 'VAE'],perceptual_loss: List[str] = ['vgg11', 'vgg16', 'vgg19','alex', 'squeeze'],channel_loss: List[str] = ['Histogram_loss','angular_color_loss', 'dark_channel_loss','lch_channel_loss','hsv_channel_loss'],structural_loss: List[str] = ['ssim', 'psnr', 'mse', 'gradientLoss'], dataset_name="UIEB", dataset_path="data"):
     
     ckpt_savedir, results_savedir, txt_savedir = check_dir()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    modelos = [VAE_model()]
+    modelos = load_models(models=models)
     loss_battle = []
-    loss_battle.extend(build_perceptual_losses(rank=device))
-    loss_battle.extend(build_channel_losses(rank = device))
-    loss_battle.extend(build_structural_losses(rank = device))
+    loss_battle.extend(build_perceptual_losses(perceptual_loss=perceptual_loss,rank=device))
+    loss_battle.extend(build_channel_losses(channel_loss=channel_loss,rank = device))
+    loss_battle.extend(build_structural_losses(structural_loss=structural_loss,rank = device))
 
     print(f"{len(loss_battle)} loss functions to train with")
     print(f"{len(modelos)} models to train with\n")
