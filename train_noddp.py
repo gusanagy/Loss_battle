@@ -10,7 +10,7 @@ from metrics.metrics import *
 from src.utils import *
 from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 
-def train_models(epochs: int=100, model_name=None, models: List[str] =None ,perceptual_loss: List[str] = ['vgg11', 'vgg16', 'vgg19','alex', 'squeeze'],channel_loss: List[str] = ['Histogram_loss','angular_color_loss', 'dark_channel_loss','lch_channel_loss','hsv_channel_loss'],structural_loss: List[str] = ['ssim', 'psnr', 'mse', 'gradientLoss'], dataset_name="UIEB", dataset_path="data"):
+def train_models(plot_epc:int = None,epochs: int=100, model_name=None, models: List[str] =None ,perceptual_loss: List[str] = ['vgg11', 'vgg16', 'vgg19','alex', 'squeeze'],channel_loss: List[str] = ['Histogram_loss','angular_color_loss', 'dark_channel_loss','lch_channel_loss','hsv_channel_loss'],structural_loss: List[str] = ['ssim', 'psnr', 'mse', 'gradientLoss'], dataset_name="UIEB", dataset_path="data"):
     
     ckpt_savedir, results_savedir, txt_savedir = check_dir()
 
@@ -52,11 +52,17 @@ def train_models(epochs: int=100, model_name=None, models: List[str] =None ,perc
                         loss.backward()
                         optimizer.step()
                         #Optionally print loss information
-                        # if batch_idx % 2 == 0:
-                        #     print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+                        #print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()} \n\n torch tensor:\n {output.shape,output} \n\n")
+                        if batch_idx % plot_epc == 0:
+                            print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()} \n")
                 else:
                     for batch_idx, (data, target) in enumerate(train_loader_UIEB):
+                        #data_max, target_max, data_min, target_min = data.numpy().max(), target.numpy().max(), data.numpy().min(), target.numpy().min()
+                        #print(f"Data: {data_max, data_min} \n\n Target: {target_max, target_min} \n\n")
+                        data, target = data*2-1, target*2-1 ;"""quando fazer a iferencia precisa fazer essa transformacao e para plotar tem de fazer a transformcao inversa"""
                         data, target = data.cuda(), target.cuda()
+                        #print(f"nova data:{new_data.numpy().max(), new_data.numpy().min()}")    
+                        
                         optimizer.zero_grad()
                         output = model(data)
                         
@@ -64,9 +70,9 @@ def train_models(epochs: int=100, model_name=None, models: List[str] =None ,perc
 
                         loss.backward()
                         optimizer.step()
-                        ##Optionally print loss information
-                        # if batch_idx % 100 == 0:
-                        #     print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
+                        
+                        if epoch % plot_epc == 0:
+                            print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()}")
 
 
             # Salve Dir para salvar os checkpoints

@@ -20,7 +20,7 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_one_model(model=model_name).to(device)
     
-    loss_test = build_perceptual_losses(perceptual_loss=['vgg16'],rank=device)
+    #loss_test = build_perceptual_losses(perceptual_loss=['vgg16'],rank=device)
     # loss_battle.extend(build_perceptual_losses(rank=device))
     # loss_battle.extend(build_channel_losses(rank = device))
     # loss_battle.extend(build_structural_losses(rank = device))
@@ -37,48 +37,96 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
     # Avaliar o modelo
     model.eval()
     with torch.no_grad():
-        for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
-           
-            data = data.cuda()
-            target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
-
-            predictions = model(data).cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
-            
-            for i in range(predictions.shape[0]):
-                name = ref_path[i].split('/')[-1]
-                print(f"ref path:  {name}")
+        if model.__class__.__name__ == 'VAE':
+            for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
                 
-                if i == 4:
+                if batch_idx == 1:
                     break
-                pred_img = predictions[i][::-1]
-                target_img = target[i][::-1]
-                print(f"""
-                pred_img.shape: {pred_img.shape}
-                data: {target_img.shape}
-                print: {type(pred_img)}
-                """)
-                # Normalizar se necessário (0-1)
-                if pred_img.max() > 1.0:
-                    pred_img = pred_img / 255.0
-                if target_img.max() > 1.0:
-                    target_img = target_img / 255.0
-                if plot is True:
-                    plt.imshow(target_img)
-                    plt.show()
-                    plt.imshow(pred_img)
-                    plt.show()
-                    plt.imshow(pred_img*255)
-                    plt.show()
-                if metrics is True:
-                    #Calcula a métrica
-                    print(f"Calculating metrics for {model_name}\n, uciqe: {uciqe(nargin=1,loc=pred_img)}, uiqm uciqe:{nmetrics(pred_img)}")    
-                    # psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
-                    # print(f"PSNR: {psnr_value}, SSIM: {ssim_value}, UCIQE: {uciqe_}, UIQM: {uiqm}")
-                if save is True:
-                    #Salvar a imagem predita
-                    cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
+                data, target = data.cuda(), target.cuda()
+                    
+                output ,mu, logvar = model(data)
+                print(f"output shape: {output.shape}\nlogvar:{logvar.shape}\nmu:{mu.shape}")
+                
+                #transformando para numpy para calcular as métricas
+                target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
+                predictions = output.cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
+                for i in range(predictions.shape[0]):
+                    print(f"ref path:  {ref_path[i].split('/')[-1]}")
+                    if i == 2:
+                        break
+                    pred_img = predictions[i][::-1]
+                    target_img = target[i][::-1]
+
+                    # Normalizar se necessário (0-1)
+                    if pred_img.max() > 1.0:
+                        pred_img = pred_img / 255.0
+                    if target_img.max() > 1.0:
+                        target_img = target_img / 255.0
+                    
+                    if plot is True:
+                        # Criar uma figura com 1 linha e 3 colunas
+                        fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+
+                        # Mostrar cada imagem em um subplot
+                        axes[0].imshow(target_img)
+                        axes[0].set_title("Target")
+                        axes[0].axis('off')  # Desativar os eixos
+                        axes[1].imshow(pred_img)
+                        axes[1].set_title("Prediction*255")
+                        axes[1].axis('off')
+                        axes[2].imshow(pred_img*255)
+                        axes[2].set_title("Prediction")
+                        axes[2].axis('off')
+
+
+                        # Ajustar o layout para evitar sobreposição
+                        plt.tight_layout()
+
+                        # Exibir o multiplot
+                        plt.show()
+        else:
+            for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
+            
+                data = data.cuda()
+                target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
+
+                predictions = model(data).cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
+                
+                for i in range(predictions.shape[0]):
+                    name = ref_path[i].split('/')[-1]
+                    print(f"ref path:  {name}")
+                    
+                    if i == 4:
+                        break
+                    pred_img = predictions[i][::-1]
+                    target_img = target[i][::-1]
+                    print(f"""
+                    pred_img.shape: {pred_img.shape}
+                    data: {target_img.shape}
+                    print: {type(pred_img)}
+                    """)
+                    # Normalizar se necessário (0-1)
+                    if pred_img.max() > 1.0:
+                        pred_img = pred_img / 255.0
+                    if target_img.max() > 1.0:
+                        target_img = target_img / 255.0
+                    if plot is True:
+                        plt.imshow(target_img)
+                        plt.show()
+                        plt.imshow(pred_img)
+                        plt.show()
+                        plt.imshow(pred_img*255)
+                        plt.show()
+                    if metrics is True:
+                        #Calcula a métrica
+                        print(f"Calculating metrics for {model_name}\n, uciqe: {uciqe(nargin=1,loc=pred_img)}, uiqm uciqe:{nmetrics(pred_img)}")    
+                        # psnr_value, ssim_value, uciqe_, uiqm = calculate_metrics(predictions, target)
+                        # print(f"PSNR: {psnr_value}, SSIM: {ssim_value}, UCIQE: {uciqe_}, UIQM: {uiqm}")
+                    if save is True:
+                        #Salvar a imagem predita
+                        cv2.imwrite(f"{results_savedir}{model_name}_prediction_{batch_idx}_{i}.png", pred_img * 255)
                
-            break
+
         #         psnr_list.append(psnr_value)
         #         ssim_list.append(ssim_value)
         #         uciqe_list.append(uciqe_)
@@ -133,6 +181,7 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
     train_loader_UIEB, test_loader_UIEB = create_dataloader(dataset_name=dataset_name, dataset_path=dataset_path,ddp=False)
 
     for model in modelos:
+        
         for loss_fn in loss_battle:
             print(f"""Testing: {model.__class__.__name__} with {loss_fn.name}""")
             model_name = model.__class__.__name__+'_'+ loss_fn.name
