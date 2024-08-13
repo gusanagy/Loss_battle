@@ -13,19 +13,23 @@ def Vit_model(image_size:int=256, patch_size:int=16, num_channels:int=3, embed_d
     return ImageEnhancerTransformer(image_size=image_size, patch_size=patch_size, num_channels=num_channels, embed_dim=embed_dim, num_heads=num_heads, mlp_dim=mlp_dim, num_layers=num_layers, dropout=dropout)
 def load_models(models:List[str] = ['Unet', 'Vit', 'VAE']):
     for model in models:
+        print(f"Loading model: {model}")
         lmodel = []
         if len(models) == 3:
             return [Unet_model(), Vit_model(),VAE_model()]
-        else:
-            if model not in ['Unet', 'Vit', 'VAE']:
-                raise ValueError(f"Unsupported model type\nPlease choose from: 'Unet', 'Vit', 'VAE'")
-            if model == 'Unet':
-                lmodel.append(Unet_model())
-            if model == 'Vit':
-                lmodel.append(Vit_model())
-            if model == 'VAE':
-                lmodel.append(VAE_model())
+    
+        if model not in ['Unet', 'Vit', 'VAE']:
+            raise ValueError(f"Unsupported model type\nPlease choose from: 'Unet', 'Vit', 'VAE'")
+        if model == 'Unet':
+            lmodel.append(Unet_model())
+        if model == 'Vit':
+            lmodel.append(Vit_model())
+        if model == 'VAE':
+            lmodel.append(VAE_model())
     return lmodel
+def load_two():
+    return [Unet_model(), Vit_model()]
+
         
     
 def load_one_model(model:str = 'Unet'):

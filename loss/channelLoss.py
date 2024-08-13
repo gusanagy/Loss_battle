@@ -34,37 +34,6 @@ def list_channel_loss(list_loss: List[str] = None,rank=0):
         return_loss.append(dict_loss[loss])
     return return_loss
 
-def normalize_loss_output(func):
-        def wrapper(*args, **kwargs):
-            result = func(*args, **kwargs)
-            
-            # Normalização usando o valor de referência
-            if result == float('inf'):
-                normalized_loss = torch.tensor(1.0)
-            elif result == -float('inf'):
-                normalized_loss = torch.tensor(0.0)
-            else:
-                normalized_loss = result*2-1
-                # Garante que o valor esteja no intervalo [0, 1]
-                normalized_loss = torch.clamp(normalized_loss, 0.0, 1.0)
-            return normalized_loss
-        return wrapper
-
-def normalize_weight_output(func,reference_value=100.0):
-        def wrapper(*args, **kwargs):
-            result = func(*args, **kwargs)
-            
-            # Normalização usando o valor de referência
-            if result == float('inf'):
-                normalized_loss = torch.tensor(1.0)
-            elif result == -float('inf'):
-                normalized_loss = torch.tensor(0.0)
-            else:
-                normalized_loss = 1.0-(1.0/(result/reference_value))
-                # Garante que o valor esteja no intervalo [0, 1]
-                normalized_loss = torch.clamp(normalized_loss, 0.0, 1.0)
-            return normalized_loss
-        return wrapper
 
 """Angular Color Loss function"""##mudar nome %
 class angular_color_loss(nn.Module):
@@ -313,94 +282,6 @@ class LabChannelLoss(nn.Module):
         # Total loss
         loss = l_loss + a_loss + b_loss
         return loss
-# class LabChannelLoss(nn.Module):
-#     def __init__(self,id:int = None, patch_size=15):
-#         super(LabChannelLoss, self).__init__()
-#         self.patch_size = patch_size
-#         self._id = id
-#     @property
-#     def name(self):
-#         return self.__class__.__name__
-#     @property
-#     def id(self):
-#         return self._id
-#     def rgb_to_lab(self, rgb):
-#         """
-#         Convert RGB to LAB color space.
-        
-#         Args:
-#             rgb (Tensor): The RGB image with shape (N, C, H, W).
-        
-#         Returns:
-#             Tensor: The LAB image with shape (N, 3, H, W).
-#         """
-#         # Convert RGB to XYZ
-#         r = rgb[:, 0, :, :]
-#         g = rgb[:, 1, :, :]
-#         b = rgb[:, 2, :, :]
-        
-#         # # Linear RGB to XYZ conversion
-#         r = r / 255.0
-#         g = g / 255.0
-#         b = b / 255.0
-        
-#         # Apply transformation matrix
-#         x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b
-#         y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
-#         z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b
-        
-#         # Normalize XYZ
-#         x = x / 0.95047
-#         z = z / 1.08883
-        
-#         # Convert XYZ to LAB
-#         def f(t):
-#             return torch.where(t > 0.008856, t.pow(1/3), 7.787 * t + 16/116)
-        
-#         l = 116 * f(y) - 16
-#         a = 500 * (f(x) - f(y))
-#         b = 200 * (f(y) - f(z))
-        
-#         return torch.stack([l, a, b], dim=1)
-#     #@normalize_weight_output
-#     def forward(self, input, target):
-#         """
-#         Compute the LAB Channel Loss between the input and target images.
-        
-#         Args:
-#             input (Tensor): The predicted image with shape (N, C, H, W).
-#             target (Tensor): The ground truth image with shape (N, C, H, W).
-        
-#         Returns:
-#             Tensor: The LAB Channel Loss value.
-#         """
-#         def lab_channel(image, patch_size):
-#             # Compute the LAB channels of an image
-#             lab = self.rgb_to_lab(image)
-#             l = lab[:, 0, :, :]
-#             a = lab[:, 1, :, :]
-#             b = lab[:, 2, :, :]
-            
-#             # Apply convolution to compute channel loss (LAB-based)
-#             kernel = torch.ones((1, 1, patch_size, patch_size), device=image.device)
-#             l_channel = F.conv2d(l.unsqueeze(1), kernel, stride=1, padding=patch_size//2)
-#             a_channel = F.conv2d(a.unsqueeze(1), kernel, stride=1, padding=patch_size//2)
-#             b_channel = F.conv2d(b.unsqueeze(1), kernel, stride=1, padding=patch_size//2)
-            
-#             return l_channel, a_channel, b_channel
-        
-#         # Compute LAB channels
-#         lab_input = lab_channel(input, self.patch_size)
-#         lab_target = lab_channel(target, self.patch_size)
-        
-#         # Compute the loss
-#         l_loss = F.mse_loss(lab_input[0], lab_target[0],reduction='mean')
-#         a_loss = F.mse_loss(lab_input[1], lab_target[1],reduction='mean')
-#         b_loss = F.mse_loss(lab_input[2], lab_target[2],reduction='mean')
-        
-#         # Total loss
-#         loss = l_loss + a_loss + b_loss
-#         return loss
 
 """YUV Channel Loss"""
 class YUVChannelLoss(nn.Module):

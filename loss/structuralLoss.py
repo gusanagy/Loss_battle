@@ -176,7 +176,7 @@ class PSNRLoss(nn.Module):
         return self._id
 
     def forward(self, input, target):
-        return psnr(input, target, max_val=1.0)
+        return -(psnr(input, target, max_val=1.0))
 
 """MS-SSIM Loss function"""
 class MSSSIMLoss(nn.Module):
