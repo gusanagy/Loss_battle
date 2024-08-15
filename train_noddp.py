@@ -16,7 +16,7 @@ def train_models(plot_epc:int = 700,epochs: int=100, model_name=None, models: Li
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    modelos = load_two()
+    modelos = [load_one_model(model=model_name)]
     loss_battle = []
     
     if perceptual_loss is not None:
@@ -70,17 +70,17 @@ def train_models(plot_epc:int = 700,epochs: int=100, model_name=None, models: Li
                         
                         if batch_idx % plot_epc == 0 :
                             print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()} \n")
-
+                
             # Salve Dir para salvar os checkpoints
-            print(f"Testando o modelo {model_name}")
+            print(f"Salvando Ckpt {model_name}")
             # Salvar o estado do modelo original
-            torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_ckpt.pth")
+            torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{epoch}_ckpt.pth")
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs per model")
+    parser.add_argument("--epochs", type=int, default=200, help="Number of epochs per model")
     args = parser.parse_args()
 
     train_models(epochs=args.epochs)

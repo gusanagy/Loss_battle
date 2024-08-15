@@ -355,72 +355,151 @@ class YUVChannelLoss(nn.Module):
         loss = y_loss + u_loss + v_loss
         return loss
 
-"""HSV Channel Loss"""#%
+# """HSV Channel Loss"""#%
+# class HSVChannelLoss(nn.Module):
+#     def __init__(self,id: int=None, patch_size=15):
+#         super(HSVChannelLoss, self).__init__()
+#         self.patch_size = patch_size
+#         self._id = id
+#     @property
+#     def name(self):
+#         return self.__class__.__name__
+#     @property
+#     def id(self):
+#         return self._id
+#     def rgb_to_hsv(self, rgb):
+#         """
+#         Convert RGB to HSV color space.
+        
+#         Args:
+#             rgb (Tensor): The RGB image with shape (N, C, H, W).
+        
+#         Returns:
+#             Tensor: The HSV image with shape (N, 3, H, W).
+#         """
+#         r = rgb[:, 0, :, :]
+#         g = rgb[:, 1, :, :]
+#         b = rgb[:, 2, :, :]
+
+#         max_val, _ = torch.max(torch.stack([r, g, b], dim=1), dim=1)
+#         min_val, _ = torch.min(torch.stack([r, g, b], dim=1), dim=1)
+
+#         delta = max_val - min_val
+#         s = torch.where(max_val == 0, torch.tensor(0.0, device=rgb.device), delta / max_val)
+
+#         h = torch.where(
+#             delta == 0,
+#             torch.tensor(0.0, device=rgb.device),
+#             torch.where(
+#                 max_val == r,
+#                 (g - b) / delta % 6,
+#                 torch.where(
+#                     max_val == g,
+#                     (b - r) / delta + 2,
+#                     (r - g) / delta + 4
+#                 )
+#             ) / 6
+#         )
+#         h = (h + 1) % 1
+
+#         return torch.stack([h, s, max_val], dim=1)
+    
+#     def forward(self, input, target):
+#         """
+#         Compute the HSV Channel Loss between the input and target images.
+        
+#         Args:
+#             input (Tensor): The predicted image with shape (N, C, H, W).
+#             target (Tensor): The ground truth image with shape (N, C, H, W).
+        
+#         Returns:
+#             Tensor: The HSV Channel Loss value.
+#         """
+#         def hsv_channel(image, patch_size):
+#             # Compute the HSV channels of an image
+#             hsv = self.rgb_to_hsv(image)
+#             h = hsv[:, 0, :, :]
+#             s = hsv[:, 1, :, :]
+#             v = hsv[:, 2, :, :]
+
+#             # Apply convolution to compute channel loss (HSV-based)
+#             kernel = torch.ones((1, 1, patch_size, patch_size), device=image.device)
+#             h_channel = F.conv2d(h.unsqueeze(1), kernel, stride=1, padding=patch_size//2)
+#             s_channel = F.conv2d(s.unsqueeze(1), kernel, stride=1, padding=patch_size//2)
+#             v_channel = F.conv2d(v.unsqueeze(1), kernel, stride=1, padding=patch_size//2)
+
+#             return h_channel, s_channel, v_channel
+
+#         # Compute HSV channels
+#         hsv_input = hsv_channel(input, self.patch_size)
+#         hsv_target = hsv_channel(target, self.patch_size)
+
+#         # Compute the loss
+#         h_loss = F.mse_loss(hsv_input[0], hsv_target[0],reduction='mean')
+#         s_loss = F.mse_loss(hsv_input[1], hsv_target[1],reduction='mean')
+#         v_loss = F.mse_loss(hsv_input[2], hsv_target[2],reduction='mean')
+
+#         # Total loss
+#         #loss = (1/(h_loss + s_loss + v_loss))-1
+#         loss = h_loss + s_loss + v_loss
+
+#         return loss
+
 class HSVChannelLoss(nn.Module):
-    def __init__(self,id: int=None, patch_size=15):
+    def __init__(self, id: int = None, patch_size=15):
         super(HSVChannelLoss, self).__init__()
         self.patch_size = patch_size
         self._id = id
+
     @property
     def name(self):
         return self.__class__.__name__
+
     @property
     def id(self):
         return self._id
-    def rgb_to_hsv(self, rgb):
+
+    def rgb_to_hsv_opencv(self, rgb):
         """
-        Convert RGB to HSV color space.
-        
+        Convert RGB to HSV using OpenCV.
+
         Args:
             rgb (Tensor): The RGB image with shape (N, C, H, W).
-        
+
         Returns:
             Tensor: The HSV image with shape (N, 3, H, W).
         """
-        r = rgb[:, 0, :, :]
-        g = rgb[:, 1, :, :]
-        b = rgb[:, 2, :, :]
+        # Convert from torch Tensor to numpy array
+        rgb_np = rgb.permute(0, 2, 3, 1).cpu().detach().numpy()  # Convert to (N, H, W, C)
+        
+        # Convert RGB to BGR for OpenCV
+        bgr_np = rgb_np[..., ::-1]
+        
+        # Convert each image in the batch
+        hsv_np = np.array([cv2.cvtColor(img, cv2.COLOR_BGR2HSV) for img in bgr_np])
+        
+        # Convert back to torch Tensor
+        hsv_tensor = torch.from_numpy(hsv_np).permute(0, 3, 1, 2).to(rgb.device, dtype=rgb.dtype)  # (N, C, H, W)
 
-        max_val, _ = torch.max(torch.stack([r, g, b], dim=1), dim=1)
-        min_val, _ = torch.min(torch.stack([r, g, b], dim=1), dim=1)
+        return hsv_tensor
 
-        delta = max_val - min_val
-        s = torch.where(max_val == 0, torch.tensor(0.0, device=rgb.device), delta / max_val)
-
-        h = torch.where(
-            delta == 0,
-            torch.tensor(0.0, device=rgb.device),
-            torch.where(
-                max_val == r,
-                (g - b) / delta % 6,
-                torch.where(
-                    max_val == g,
-                    (b - r) / delta + 2,
-                    (r - g) / delta + 4
-                )
-            ) / 6
-        )
-        h = (h + 1) % 1
-
-        return torch.stack([h, s, max_val], dim=1)
-    
     def forward(self, input, target):
         """
         Compute the HSV Channel Loss between the input and target images.
-        
+
         Args:
             input (Tensor): The predicted image with shape (N, C, H, W).
             target (Tensor): The ground truth image with shape (N, C, H, W).
-        
+
         Returns:
             Tensor: The HSV Channel Loss value.
         """
         def hsv_channel(image, patch_size):
             # Compute the HSV channels of an image
-            hsv = self.rgb_to_hsv(image)
-            h = hsv[:, 0, :, :]
-            s = hsv[:, 1, :, :]
-            v = hsv[:, 2, :, :]
+            hsv = self.rgb_to_hsv_opencv(image)
+            h = hsv[:, 0, :, :] / 179.0  # Normalize H channel (OpenCV uses 0-179)
+            s = hsv[:, 1, :, :] / 255.0  # Normalize S channel
+            v = hsv[:, 2, :, :] / 255.0  # Normalize V channel
 
             # Apply convolution to compute channel loss (HSV-based)
             kernel = torch.ones((1, 1, patch_size, patch_size), device=image.device)
@@ -434,13 +513,12 @@ class HSVChannelLoss(nn.Module):
         hsv_input = hsv_channel(input, self.patch_size)
         hsv_target = hsv_channel(target, self.patch_size)
 
-        # Compute the loss
-        h_loss = F.mse_loss(hsv_input[0], hsv_target[0],reduction='mean')
-        s_loss = F.mse_loss(hsv_input[1], hsv_target[1],reduction='mean')
-        v_loss = F.mse_loss(hsv_input[2], hsv_target[2],reduction='mean')
+        # Compute the loss with an added small value to prevent NaNs
+        h_loss = F.mse_loss(hsv_input[0], hsv_target[0], reduction='mean')
+        s_loss = F.mse_loss(hsv_input[1], hsv_target[1], reduction='mean')
+        v_loss = F.mse_loss(hsv_input[2], hsv_target[2], reduction='mean')
 
         # Total loss
-        #loss = (1/(h_loss + s_loss + v_loss))-1
         loss = h_loss + s_loss + v_loss
 
         return loss

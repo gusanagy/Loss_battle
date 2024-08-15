@@ -88,7 +88,9 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
                         plt.show()
         else:
             for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
-            
+                if plot is True:
+                    if batch_idx == 1:
+                        break
                 data = data.cuda()
                 target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
 
@@ -109,6 +111,8 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
                     if target_img.max() > 1.0:
                         target_img = target_img / 255.0
                     if plot is True:
+                        if i == 4:
+                            break
                         # Criar uma figura com 1 linha e 3 colunas
                         fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 
@@ -169,7 +173,7 @@ def check_dir():
     return ckpt_savedir, results_savedir, txt_savedir
 
 
-def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dataset_name="UIEB", dataset_path="data", metrics=True, plot=True, save=True):
+def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dataset_name="UIEB", dataset_path="data", metrics=False, plot=True, save=False):
 
     ckpt_savedir, _, _ = check_dir()
     
@@ -270,8 +274,9 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                             
                 else:
                         for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
-                            # if batch_idx == 1:
-                            #     break
+                            if plot is True:
+                                if batch_idx == 1:
+                                        break
                             data, target = data.cuda(), target.cuda()
                             
                             output = model(data)
@@ -283,8 +288,7 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                             predictions = output.cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                             for i in range(predictions.shape[0]):
                                 name = ref_path[i].split('/')[-1]
-                                # if i == 1:
-                                #     break
+                                
                                 pred_img = predictions[i][::-1]
                                 target_img = target[i][::-1]
 
@@ -295,6 +299,9 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                                     target_img = target_img / 255.0
 
                                 if plot is True:
+                                    
+                                    if i == 1:
+                                        break
                                     # Criar uma figura com 1 linha e 3 colunas
                                     fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
@@ -322,31 +329,31 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                                     uiqm , _ = nmetrics(image_m)
                                     psnr_list.append(psnr_value); ssim_list.append(ssim_value); uciqe_list.append(uciqe_); uiqm_list.append(uiqm)
 
-                                    print(f"Calculating metrics for {model_name}\n psnr:{PSNR(image_true=target_img,image_test=pred_img*255,data_range=1.0)} ssim: {SSIM(target_img, pred_img*255, multichannel=True, win_size=3,data_range=1.0)}, uciqe: {uciqe(nargin=1,loc=image_m)}, uiqm uciqe:{nmetrics(image_m)}")
+                                    #print(f"Calculating metrics for {model_name}\n psnr:{PSNR(image_true=target_img,image_test=pred_img*255,data_range=1.0)} ssim: {SSIM(target_img, pred_img*255, multichannel=True, win_size=3,data_range=1.0)}, uciqe: {uciqe(nargin=1,loc=image_m)}, uiqm uciqe:{nmetrics(image_m)}")
 
-            if metrics is True:
-                #Calcula a media de cada metrica
-                avg_loss = sum(loss_list) / len(loss_list)
-                avg_ssim = sum(ssim_list) / len(ssim_list)
-                avg_psnr = sum(psnr_list) / len(psnr_list)
-                avg_uciqe = sum(uciqe_list) / len(uciqe_list)
-                avg_uiqm = sum(uiqm_list) / len(uiqm_list)
-                
-                print(f'{result_metrics}metrics.txt')
-                # Salvar métricas em um arquivo
-                with open(f'{result_metrics}metrics.txt', 'w') as f:
-                    f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
-                print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
-                
-                avg_loss = 0.0
-                avg_ssim = 0.0
-                avg_psnr = 0.0
-                avg_uciqe = 0.0
-                avg_uiqm = 0.0
-                
-                psnr_list.clear()
-                ssim_list.clear()
-                uciqe_list.clear()
-                uiqm_list.clear()
+                if metrics is True:
+                    #Calcula a media de cada metrica
+                    avg_loss = (sum(loss_list)+ 1.0) / (len(loss_list) + 1.0)
+                    avg_ssim = (sum(ssim_list) + 1.0) / (len(ssim_list) + 1.0)
+                    avg_psnr = (sum(psnr_list) + 1.0) / (len(psnr_list) + 1.0)
+                    avg_uciqe = (sum(uciqe_list) + 1.0) / (len(uciqe_list) + 1.0)
+                    avg_uiqm = (sum(uiqm_list) + 1.0) / (len(uiqm_list) + 1.0)
+                    
+                    #print(f'{result_metrics}metrics.txt')
+                    # Salvar métricas em um arquivo
+                    with open(f'{result_metrics}metrics.txt', 'w') as f:
+                        f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
+                    print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
+                    
+                    avg_loss = 0.0
+                    avg_ssim = 0.0
+                    avg_psnr = 0.0
+                    avg_uciqe = 0.0
+                    avg_uiqm = 0.0
+                    
+                    psnr_list.clear()
+                    ssim_list.clear()
+                    uciqe_list.clear()
+                    uiqm_list.clear()
     
     pass
