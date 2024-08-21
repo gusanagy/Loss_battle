@@ -229,7 +229,7 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
                         predictions = output.cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                         for i in range(predictions.shape[0]):
 
-                            if i == 1:
+                            if i == 3:
                                 break
                             pred_img = predictions[i][::-1]
                             target_img = target[i][::-1]
@@ -300,7 +300,7 @@ def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, data
 
                                 if plot is True:
                                     
-                                    if i == 1:
+                                    if i == 3:
                                         break
                                     # Criar uma figura com 1 linha e 3 colunas
                                     fig, axes = plt.subplots(1, 2, figsize=(12, 4))

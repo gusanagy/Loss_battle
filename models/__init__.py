@@ -29,8 +29,6 @@ def load_models(models:List[str] = ['Unet', 'Vit', 'VAE']):
     return lmodel
 def load_two():
     return [Unet_model(), Vit_model()]
-
-        
     
 def load_one_model(model:str = 'Unet'):
         if model == 'Unet':
