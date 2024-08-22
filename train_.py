@@ -10,9 +10,9 @@ from metrics.metrics import *
 from src.utils import *
 from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 
-def train_final(plot_epc:int = 700,epochs: int=100, model_name=None, /
-                models: List[str] =None ,perceptual_loss: List[str] = ['vgg11', 'vgg16', 'vgg19','alex', 'squeeze'],/
-                channel_loss: List[str] = ['Histogram_loss','angular_color_loss', 'dark_channel_loss','lab_channel_loss','hsv_channel_loss'],/
+def train_final(plot_epc:int = 700,epochs: int=100, model_name=None, 
+                models: List[str] =None ,perceptual_loss: List[str] = ['vgg11', 'vgg16', 'vgg19','alex', 'squeeze'],
+                channel_loss: List[str] = ['Histogram_loss','angular_color_loss', 'dark_channel_loss','lab_channel_loss','hsv_channel_loss'],
                 structural_loss: List[str] = ['ssim', 'psnr', 'mse', 'gradientLoss'], dataset_name="UIEB", dataset_path="data"):
     
     ckpt_savedir, results_savedir, txt_savedir = check_dir()
