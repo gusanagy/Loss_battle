@@ -11,7 +11,7 @@ from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 import cv2
 from metrics.metrics import *
 
-def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", ckpt_path=None, metrics=True, plot=True, save=True):
+def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", ckpt_path=None, metrics=True, plot=True, save=True):
     #"output/ckpt_battle/UNet_PerceptualLoss_vgg11_ckpt.pth"
     filename = ckpt_path.split('/')[-1].split('.')[0]
     results_savedir = f'output/results_battle/{filename}/'#modificar devido a estrutura de pastas
@@ -29,7 +29,7 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
     # loss_battle.extend(build_structural_losses(rank = device))
 
     # Dataloader UIEB
-    train_loader_UIEB, test_loader_UIEB = create_dataloader(dataset_name=dataset_name, dataset_path=dataset_path,ddp=False)
+    train_loader_UIEB, test_loader_UIEB = create_dataloader(dataset_name=dataset_name, dataset_path=dataset_path,ddp=False,batch_size=1)
     # Salve Dir para salvar os checkpoints
     print(f"Testando o modelo {model_name}")
     # Salvar o estado do modelo original
@@ -46,7 +46,7 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
                     break
                 data, target = data.cuda(), target.cuda()
                     
-                output ,mu, logvar = model(data)
+                output, mu, logvar  = model(data)
                 print(f"output shape: {output.shape}\nlogvar:{logvar.shape}\nmu:{mu.shape}")
                 
                 #transformando para numpy para calcular as métricas
@@ -54,7 +54,7 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
                 predictions = output.cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                 for i in range(predictions.shape[0]):
                     print(f"ref path:  {ref_path[i].split('/')[-1]}")
-                    if i == 2:
+                    if i == 5:
                         break
                     pred_img = predictions[i][::-1]
                     target_img = target[i][::-1]
@@ -74,10 +74,10 @@ def test_one_model(model_name='Unet', dataset_name="UIEB", dataset_path="data", 
                         axes[0].set_title("Target")
                         axes[0].axis('off')  # Desativar os eixos
                         axes[1].imshow(pred_img)
-                        axes[1].set_title("Prediction*255")
+                        axes[1].set_title("Prediction")
                         axes[1].axis('off')
                         axes[2].imshow(pred_img*255)
-                        axes[2].set_title("Prediction")
+                        axes[2].set_title("Prediction*255")
                         axes[2].axis('off')
 
 
