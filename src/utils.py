@@ -22,7 +22,6 @@ def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", c
         os.makedirs(result_metrics)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_one_model(model=model_name).to(device)
-    
     #loss_test = build_perceptual_losses(perceptual_loss=['vgg16'],rank=device)
     # loss_battle.extend(build_perceptual_losses(rank=device))
     # loss_battle.extend(build_channel_losses(rank = device))
@@ -47,7 +46,7 @@ def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", c
                 data, target = data.cuda(), target.cuda()
                     
                 output, mu, logvar  = model(data)
-                print(f"output shape: {output.shape}\nlogvar:{logvar.shape}\nmu:{mu.shape}")
+                #print(f"output shape: {output.shape}\nlogvar:{logvar.shape}\nmu:{mu.shape}")
                 
                 #transformando para numpy para calcular as métricas
                 target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
@@ -58,13 +57,18 @@ def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", c
                         break
                     pred_img = predictions[i][::-1]
                     target_img = target[i][::-1]
-
+                    #print(f"pred_img min: {pred_img.min()}, max: {pred_img.max()}")
                     # Normalizar se necessário (0-1)
                     if pred_img.max() > 1.0:
                         pred_img = pred_img / 255.0
                     if target_img.max() > 1.0:
                         target_img = target_img / 255.0
                     
+                    # Clampeamento e conversão para visualização e salvamento
+                    pred_img = np.clip(pred_img * 255, 0, 255).astype(np.uint8)
+                    target_img = np.clip(target_img * 255, 0, 255).astype(np.uint8)
+                    print(f"Valor mínimo de pred_img: {np.min(pred_img)}")
+                    print(f"Valor máximo de pred_img: {np.max(pred_img)}")
                     if plot is True:
                         # Criar uma figura com 1 linha e 3 colunas
                         fig, axes = plt.subplots(1, 3, figsize=(12, 4))
@@ -80,63 +84,64 @@ def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", c
                         axes[2].set_title("Prediction*255")
                         axes[2].axis('off')
 
-
                         # Ajustar o layout para evitar sobreposição
                         plt.tight_layout()
 
                         # Exibir o multiplot
                         plt.show()
-        else:
-            for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
-                if plot is True:
-                    if batch_idx == 1:
-                        break
-                data = data.cuda()
-                target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
+        #else:
+            #for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
+                #if plot is True:
+                    #if batch_idx == 1:
+                        #break
+                #data = data.cuda()
+                #target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
 
-                predictions = model(data).cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
+                #predictions = model(data).cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                 
-                for i in range(predictions.shape[0]):
-                    name = ref_path[i].split('/')[-1]
-                    print(f"ref path:  {name}")
+                #for i in range(predictions.shape[0]):
+                    #name = ref_path[i].split('/')[-1]
+                    #print(f"ref path:  {name}")
                     
                     # if i == 4:
                     #     break
-                    pred_img = predictions[i][::-1]
-                    target_img = target[i][::-1]
+                    #pred_img = predictions[i][::-1]
+                    #target_img = target[i][::-1]
                     
                     # Normalizar se necessário (0-1)
-                    if pred_img.max() > 1.0:
-                        pred_img = pred_img / 255.0
-                    if target_img.max() > 1.0:
-                        target_img = target_img / 255.0
-                    if plot is True:
-                        if i == 4:
-                            break
+                    #if pred_img.max() > 1.0:
+                        #pred_img = pred_img / 255.0
+                    #if target_img.max() > 1.0:
+                        #target_img = target_img / 255.0
+                    #if plot is True:
+                        #if i == 4:
+                            #break
                         # Criar uma figura com 1 linha e 3 colunas
-                        fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+                        #fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 
                         # Mostrar cada imagem em um subplot
-                        axes[0].imshow(target_img)
-                        axes[0].set_title("Target")
-                        axes[0].axis('off')  # Desativar os eixos
-                        axes[1].imshow(pred_img)
-                        axes[1].set_title("Prediction")
-                        axes[1].axis('off')
-                        axes[2].imshow(pred_img*255)
-                        axes[2].set_title("Prediction*255")
-                        axes[2].axis('off')
+                        #axes[0].imshow(target_img)
+                        #axes[0].set_title("Target")
+                        #axes[0].axis('off')  # Desativar os eixos
+                        #axes[1].imshow(pred_img)
+                        #axes[1].set_title("Prediction")
+                        #axes[1].axis('off')
+                        #axes[2].imshow(pred_img*255)
+                        #axes[2].set_title("Prediction*255")
+                        #axes[2].axis('off')
 
                         # Ajustar o layout para evitar sobreposição
-                        plt.tight_layout()
+                        #plt.tight_layout()
 
                         # Exibir o multiplot
-                        plt.show()
+                        #plt.show()
                     
                     if save is True:
                         # Salvar a imagem predita
-                        caminho_imagem = os.path.join(results_savedir, name)
-                        cv2.imwrite(caminho_imagem, target_img * 255)
+                        #caminho_imagem = os.path.join(results_savedir, name)
+                        caminho_imagem = os.path.join(results_savedir, ref_path[i].split('/')[-1])
+                        #cv2.imwrite(caminho_imagem, target_img * 255)
+                        cv2.imwrite(caminho_imagem, pred_img)
                         image_m = cv2.imread(caminho_imagem)
                         psnr_value, ssim_value, uciqe_,  = PSNR(image_true=target_img,image_test=pred_img*255,data_range=1.0), SSIM(target_img, pred_img*255, multichannel=True, win_size=3,data_range=1.0), uciqe(nargin=1,loc=image_m)
                         uiqm , _ = nmetrics(image_m)
