@@ -64,7 +64,7 @@ class MSELoss(nn.Module):
         return self._id
     def forward(self, input, target):
         #return self.criterion(input, target)
-        return nn.MSELoss(input, target)
+        return F.mse_loss(input, target)
 
 """L1 Loss Function"""
 class L1Loss(nn.Module):
