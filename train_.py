@@ -70,9 +70,8 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
             if batch_idx == 1:
                 break
             data, target = data.cuda(), target.cuda()
-            output = model(data)
-            loss = loss_1(output, target)
-            print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(test_loader_UIEB)}], Loss: {loss.item}")
+            output, mu, logvar = model(data)
+            print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(test_loader_UIEB)}]")
             for i in output.cpu().numpy().transpose(0, 2, 3, 1):
                 plt.imshow(i)
                 plt.show()
