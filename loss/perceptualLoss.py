@@ -19,26 +19,6 @@ from typing import List
 warnings.filterwarnings("ignore", category=FutureWarning)
 def list_perceptual_loss(list_loss: List[str] = None, rank = None):
     dict_loss = {
-    'vgg11': PerceptualLoss(model='vgg11').to(rank),
-    'vgg11_bn': PerceptualLoss(model='vgg11_bn').to(rank),
-    'vgg13': PerceptualLoss(model='vgg13').to(rank),
-    'vgg13_bn': PerceptualLoss(model='vgg13_bn').to(rank),
-    'vgg16': PerceptualLoss(model='vgg16').to(rank),
-    'vgg16_bn': PerceptualLoss(model='vgg16_bn').to(rank),
-    'vgg19': PerceptualLoss(model='vgg19').to(rank),
-    'vgg19_bn': PerceptualLoss(model='vgg19_bn').to(rank),
-    'squeeze': PerceptualLoss(model='squeeze').to(rank),
-    'alex': PerceptualLoss(model='alex').to(rank)    
-                }
-    return_loss =[]
-    for loss in list_loss:
-        if loss not in dict_loss.keys():
-            raise ValueError(f"Unsupported perceptual model type\nPlease choose from {dict_loss.keys()}")
-        return_loss.append(dict_loss[loss])
-    return return_loss
-
-def list_perceptual_loss_lazy(list_loss: List[str] = None, rank = None):
-    dict_loss = {
         'vgg11': None,
         'vgg11_bn': None,
         'vgg13': None,
@@ -57,6 +37,25 @@ def list_perceptual_loss_lazy(list_loss: List[str] = None, rank = None):
         if dict_loss[loss] is None:
             return_loss.append(PerceptualLoss(model=loss).to(rank))
     return return_loss
+
+def load_perceptual_loss(list_loss: str = None, rank = None):
+    dict_loss = {
+        'vgg11': None,
+        'vgg11_bn': None,
+        'vgg13': None,
+        'vgg13_bn': None,
+        'vgg16': None,
+        'vgg16_bn': None,
+        'vgg19': None,
+        'vgg19_bn': None,
+        'squeeze': None,
+        'alex': None
+    }
+    if list_loss not in dict_loss.keys():
+        raise ValueError(f"Unsupported perceptual model type\nPlease choose from {dict_loss.keys()}")
+    if dict_loss[list_loss] is None:
+        return PerceptualLoss(model=list_loss).to(rank)
+
 
 
 # Definindo a PerceptualLoss

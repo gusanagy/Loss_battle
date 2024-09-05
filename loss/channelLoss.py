@@ -34,6 +34,26 @@ def list_channel_loss(list_loss: List[str] = None,rank=0):
         return_loss.append(dict_loss[loss])
     return return_loss
 
+def load_channel_loss(list_loss: str = None,rank=0):
+    if list_loss == None:
+        return []
+    dict_loss = {
+    'angular_color_loss':angular_color_loss().to(rank),
+    'light_loss':light_loss().to(rank),
+    'dark_channel_loss':DarkChannelLoss().to(rank),
+    'lch_channel_loss':LCHChannelLoss().to(rank),
+    'lab_channel_loss':LabChannelLoss().to(rank), 
+    'yuv_channel_loss':YUVChannelLoss().to(rank),
+    'hsv_channel_loss':HSVChannelLoss().to(rank), 
+    'ycbcr_channel_loss':YCbCrChannelLoss().to(rank),
+    'cieluv_channel_loss':CIELUVChannelLoss().to(rank),
+    'yuv420_channel_loss:':YUV420ChannelLoss().to(rank),
+    'Histogram_loss':HistogramColorLoss().to(rank)
+                }
+    if list_loss not in dict_loss.keys():
+        raise ValueError(f"Unsupported perceptual model type\nPlease choose from {dict_loss.keys()}")
+    else:
+        return  dict_loss[list_loss]
 
 """Angular Color Loss function"""##mudar nome %
 class angular_color_loss(nn.Module):
