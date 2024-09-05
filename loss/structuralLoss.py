@@ -54,7 +54,7 @@ class MAELoss(nn.Module):
 class MSELoss(nn.Module):
     def __init__(self, id: int = None):
         super(MSELoss, self).__init__()
-        self.criterion = nn.MSELoss()
+        #self.criterion = nn.MSELoss()
         self._id = id
     @property
     def name(self):
@@ -63,7 +63,8 @@ class MSELoss(nn.Module):
     def id(self):
         return self._id
     def forward(self, input, target):
-        return self.criterion(input, target)
+        #return self.criterion(input, target)
+        return F.mse_loss(input, target)
 
 """L1 Loss Function"""
 class L1Loss(nn.Module):
@@ -176,7 +177,7 @@ class PSNRLoss(nn.Module):
         return self._id
 
     def forward(self, input, target):
-        return -(psnr(input, target, max_val=1.0))
+        return (psnr(input, target, max_val=1.0))
 
 """MS-SSIM Loss function"""
 class MSSSIMLoss(nn.Module):
