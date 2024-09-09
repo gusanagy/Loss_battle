@@ -38,13 +38,25 @@ def load_image_paths(dataset_path="data", dataset: str = None, task="train", spl
         image_paths_ref.extend(glob.glob(pattern_png_ref))
     
     elif dataset == "TURBID":
-        pattern_jpg_raw = os.path.join(dataset_path, dataset, "*", "*.jpg")
-        all_image_paths_raw = glob.glob(pattern_jpg_raw)
-        image_paths_raw = [path for path in all_image_paths_raw if not path.endswith('ref.jpg')]
-        
-        pattern_jpg_ref = os.path.join(dataset_path, dataset, "*", "ref.jpg")
-        image_paths_ref = glob.glob(pattern_jpg_ref)
-    
+
+        for root, dirs, files in os.walk(os.path.join(dataset_path, dataset)):
+            ref_image = None
+            raw_images_in_folder = []
+
+            for file in files:
+                if file.endswith('.jpg'):
+                    if file == 'ref.jpg':
+                        ref_image = os.path.join(root, file)
+                    else:
+                        raw_images_in_folder.append(os.path.join(root, file))
+
+            if ref_image and raw_images_in_folder:
+                image_paths_raw.extend(raw_images_in_folder)
+                image_paths_ref.extend([ref_image] * len(raw_images_in_folder))
+                
+        #print(len(image_paths_raw), len(image_paths_ref),"\n")
+
+
     elif dataset == "LSUI":
         pattern_jpg_raw = os.path.join(dataset_path, dataset, "input", "*.jpg")
         image_paths_raw.extend(glob.glob(pattern_jpg_raw))
