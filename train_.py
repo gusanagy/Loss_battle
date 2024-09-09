@@ -12,11 +12,10 @@ from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 import matplotlib.pyplot as plt
 
 def train_final(plot_epc:int = 700,epochs: int=100, model_name=None, 
-                pretrained: str = None,
-                perceptual_loss: str = None,
-                channel_loss: str = None,
-                structural_loss: str= None,
-                dataset_name="UIEB", dataset_path="data"):
+                perceptual_loss: str = None,structural_loss: str= None,
+                channel_loss: str = None,pretrained: str = None,
+                dataset_name="UIEB", dataset_path="data",
+                ckpt_out_name="final",ckpt_name=None):
     
     ckpt_savedir, results_savedir, txt_savedir = check_dir()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -78,10 +77,9 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
                 if batch_idx % plot_epc == 0:
                     print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(train_loader_UIEB)}], Loss: {loss.item()} \n")
             
-        elif model_name == 'Unet' or model_name == 'VIT':
+        elif model_name == 'Unet' or model_name == 'Vit':
             for batch_idx, (data, target) in enumerate(train_loader_UIEB):
                 data, target = data.cuda(), target.cuda()
-                #data = data.to(device)
                 
                 optimizer.zero_grad()
                 output = model(data)
@@ -116,12 +114,13 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
                 plt.imshow(i)
                 plt.show()
 
-    
     # Salve Dir para salvar os checkpoints
     print(f"Salvando Ckpt {model_name}")
     # Salvar o estado do modelo original
-    torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_ckpt.pth")
-
+    if ckpt_name is not None:   
+        torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_{ckpt_out_name}ckpt.pth")
+    else:
+        torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_ckpt.pth")
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
