@@ -11,11 +11,28 @@ from src.utils import *
 from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 import matplotlib.pyplot as plt
 
+def check_save_dir(dir:str = None):
+    """
+    Cria pastas e subpastas para salvar os resultados.
+    Pasta:
+        output/ckpt_study/(dataset + model + loss)
+        
+    """
+    filter = dir.split('.')
+    if dir is None:
+        print("Por favor, insira um nome para o diretório")
+        return 0
+    else:
+        ckpt_savedir = filter[0] +'/'
+        if not os.path.exists(ckpt_savedir):
+            os.makedirs(ckpt_savedir)
+    return ckpt_savedir
+
 def train_final(plot_epc:int = 700,epochs: int=100, model_name=None, 
-                perceptual_loss: str = None,structural_loss: str= None,
-                channel_loss: str = None,pretrained: str = None,
+                perceptual_loss: str = None, structural_loss: str= None,
+                channel_loss: str = None, pretrained: str = None,
                 dataset_name="UIEB", dataset_path="data",
-                ckpt_out_name="final",ckpt_name=None):
+                ckpt_out_name: str = None):
     
     ckpt_savedir, results_savedir, txt_savedir = check_dir()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -115,12 +132,18 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
                 plt.show()
 
     # Salve Dir para salvar os checkpoints
-    print(f"Salvando Ckpt {model_name}")
+    name = f'{model_name}_{dataset_name}_{loss_l[0].name}_{epochs}'
+    print(f"Salvando Ckpt {name}")
     # Salvar o estado do modelo original
     if ckpt_out_name is not None:   
-        torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_{ckpt_out_name}ckpt.pth")
+        torch.save(model.state_dict(), f"{ckpt_savedir}{name}_{ckpt_out_name}.pth")
+        check_save_dir(dir = f'{ckpt_savedir}{name}_{ckpt_out_name}')
+    elif perceptual_loss is None and structural_loss is None and channel_loss is None:
+        torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_PRETRAINED_{epochs}.pth")
+        check_save_dir(dir = f'{ckpt_savedir}{model_name}_{dataset_name}_PRETRAINED_{epochs}')
     else:
-        torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_ckpt.pth")
+        torch.save(model.state_dict(), f"{ckpt_savedir}{name}.pth")
+        check_save_dir(dir = f'{ckpt_savedir}{name}')
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()

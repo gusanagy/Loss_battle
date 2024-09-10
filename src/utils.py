@@ -11,7 +11,11 @@ from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 import cv2
 from metrics.metrics import *
 
-def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", ckpt_path=None, metrics=True, plot=True, save=True):
+def test_one_model(model_name='VAE', dataset_name="UIEB",
+                    dataset_path="data", ckpt_path:str=None,
+                    metrics=True, plot=True, save=True):
+    
+
     #"output/ckpt_battle/UNet_PerceptualLoss_vgg11_ckpt.pth"
     filename = ckpt_path.split('/')[-1].split('.')[0]
     results_savedir = f'output/results_battle/{filename}/'#modificar devido a estrutura de pastas
@@ -20,6 +24,8 @@ def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", c
     result_metrics = f'output/metrics_battle/{filename}/'
     if not os.path.exists(result_metrics):
         os.makedirs(result_metrics)
+
+        
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_one_model(model=model_name).to(device)
     #loss_test = build_perceptual_losses(perceptual_loss=['vgg16'],rank=device)
@@ -53,16 +59,15 @@ def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", c
                 predictions = output.cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                 for i in range(predictions.shape[0]):
                     print(f"ref path:  {ref_path[i].split('/')[-1]}")
-                    if i == 5:
-                        break
+                    
                     pred_img = predictions[i][::-1]
                     target_img = target[i][::-1]
                     #print(f"pred_img min: {pred_img.min()}, max: {pred_img.max()}")
-                    # Normalizar se necessário (0-1)
-                    if pred_img.max() > 1.0:
-                        pred_img = pred_img / 255.0
-                    if target_img.max() > 1.0:
-                        target_img = target_img / 255.0
+                    # # Normalizar se necessário (0-1)
+                    # if pred_img.max() > 1.0:
+                    #     pred_img = pred_img / 255.0
+                    # if target_img.max() > 1.0:
+                    #     target_img = target_img / 255.0
                     
                     # Clampeamento e conversão para visualização e salvamento
                     pred_img = np.clip(pred_img * 255, 0, 255).astype(np.uint8)
@@ -71,70 +76,67 @@ def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", c
                     print(f"Valor máximo de pred_img: {np.max(pred_img)}")
                     if plot is True:
                         # Criar uma figura com 1 linha e 3 colunas
-                        fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+                        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
                         # Mostrar cada imagem em um subplot
                         axes[0].imshow(target_img)
                         axes[0].set_title("Target")
                         axes[0].axis('off')  # Desativar os eixos
                         axes[1].imshow(pred_img)
-                        axes[1].set_title("Prediction")
+                        axes[1].set_title("Prediction*255")
                         axes[1].axis('off')
-                        axes[2].imshow(pred_img*255)
-                        axes[2].set_title("Prediction*255")
-                        axes[2].axis('off')
 
                         # Ajustar o layout para evitar sobreposição
                         plt.tight_layout()
 
                         # Exibir o multiplot
                         plt.show()
-        #else:
-            #for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
-                #if plot is True:
-                    #if batch_idx == 1:
-                        #break
-                #data = data.cuda()
-                #target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
-
-                #predictions = model(data).cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
+        else:
+            for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
+                if plot is True:
+                    if batch_idx == 1:
+                        break
+                data = data.cuda()
+                target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
+                predictions = model(data).cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                 
-                #for i in range(predictions.shape[0]):
-                    #name = ref_path[i].split('/')[-1]
-                    #print(f"ref path:  {name}")
+                for i in range(predictions.shape[0]):
+                    name = ref_path[i].split('/')[-1]
+                    print(f"ref path:  {name}")
                     
-                    # if i == 4:
-                    #     break
-                    #pred_img = predictions[i][::-1]
-                    #target_img = target[i][::-1]
+                    pred_img = predictions[i][::-1]
+                    target_img = target[i][::-1]
                     
-                    # Normalizar se necessário (0-1)
-                    #if pred_img.max() > 1.0:
-                        #pred_img = pred_img / 255.0
-                    #if target_img.max() > 1.0:
-                        #target_img = target_img / 255.0
-                    #if plot is True:
-                        #if i == 4:
-                            #break
-                        # Criar uma figura com 1 linha e 3 colunas
-                        #fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+                    # #Normalizar se necessário (0-1)
+                    # if pred_img.max() > 1.0:
+                    #     pred_img = pred_img / 255.0
+                    # if target_img.max() > 1.0:
+                    #     target_img = target_img / 255.0
 
-                        # Mostrar cada imagem em um subplot
-                        #axes[0].imshow(target_img)
-                        #axes[0].set_title("Target")
-                        #axes[0].axis('off')  # Desativar os eixos
-                        #axes[1].imshow(pred_img)
-                        #axes[1].set_title("Prediction")
-                        #axes[1].axis('off')
-                        #axes[2].imshow(pred_img*255)
-                        #axes[2].set_title("Prediction*255")
-                        #axes[2].axis('off')
+                    # Clampeamento e conversão para visualização e salvamento
+                    pred_img = np.clip(pred_img * 255, 0, 255).astype(np.uint8)
+                    target_img = np.clip(target_img * 255, 0, 255).astype(np.uint8)
+                    print(f"Valor mínimo de pred_img: {np.min(pred_img)}")
+                    print(f"Valor máximo de pred_img: {np.max(pred_img)}")
+                    if plot is True:
+                        if i == 4:
+                            break
+                        #Criar uma figura com 1 linha e 3 colunas
+                        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
-                        # Ajustar o layout para evitar sobreposição
-                        #plt.tight_layout()
+                        #Mostrar cada imagem em um subplot
+                        axes[0].imshow(target_img)
+                        axes[0].set_title("Target")
+                        axes[0].axis('off')  # Desativar os eixos
+                        axes[1].imshow(pred_img)
+                        axes[1].set_title("Prediction")
+                        axes[1].axis('off')
+                        
+                        #Ajustar o layout para evitar sobreposição
+                        plt.tight_layout()
 
-                        # Exibir o multiplot
-                        #plt.show()
+                        #Exibir o multiplot
+                        plt.show()
                     
                     if save is True:
                         # Salvar a imagem predita
@@ -151,6 +153,7 @@ def test_one_model(model_name='VAE', dataset_name="UIEB", dataset_path="data", c
 
                         
         if save is True:
+            name = f'{model_name}_{dataset_name}_{loss_l[0].name}_{epochs}'
             avg_ssim = sum(ssim_list) / len(ssim_list)
             avg_psnr = sum(psnr_list) / len(psnr_list)
             avg_uciqe = sum(uciqe_list) / len(uciqe_list)
@@ -176,6 +179,7 @@ def check_dir():
     if not os.path.exists(txt_savedir):
         os.makedirs(txt_savedir)
     return ckpt_savedir, results_savedir, txt_savedir
+
 
 
 def test_models(epochs: int=100, loss_fn=None, model_name=None, model=None, dataset_name="UIEB", dataset_path="data", metrics=False, plot=True, save=False):
