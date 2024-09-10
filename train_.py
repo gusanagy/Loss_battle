@@ -18,15 +18,15 @@ def check_save_dir(dir:str = None):
         output/ckpt_study/(dataset + model + loss)
         
     """
-    filter = dir.split('.')
+    
     if dir is None:
         print("Por favor, insira um nome para o diretório")
         return 0
     else:
-        ckpt_savedir = filter[0] +'/'
+        ckpt_savedir = dir
         if not os.path.exists(ckpt_savedir):
             os.makedirs(ckpt_savedir)
-    return ckpt_savedir
+    return ckpt_savedir+'/'
 
 def train_final(plot_epc:int = 700,epochs: int=100, model_name=None, 
                 perceptual_loss: str = None, structural_loss: str= None,
@@ -45,13 +45,16 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
         # Carregar os pesos no modelo
         model.load_state_dict(state_dict)
 
-    loss_l = []
+    loss_l = [];loss_n = str()
     if perceptual_loss is not None:
         loss_l.append(load_perceptual_loss(list_loss=perceptual_loss,rank=device))
+        loss_n+=perceptual_loss
     if channel_loss is not None:
         loss_l.append(load_channel_loss(list_loss=channel_loss,rank = device))
+        loss_n+=channel_loss
     if structural_loss is not None:
         loss_l.append(load_structural_loss(list_loss=structural_loss,rank = device))
+        loss_n+=structural_loss
             #print(f"{loss}")
 
     Loss_unet_vit = nn.MSELoss()
@@ -132,18 +135,21 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
                 plt.show()
 
     # Salve Dir para salvar os checkpoints
-    name = f'{model_name}_{dataset_name}_{loss_l[0].name}_{epochs}'
+    name = f'{model_name}_{dataset_name}_{loss_n}_{epochs}'
     print(f"Salvando Ckpt {name}")
     # Salvar o estado do modelo original
-    if ckpt_out_name is not None:   
-        torch.save(model.state_dict(), f"{ckpt_savedir}{name}_{ckpt_out_name}.pth")
-        check_save_dir(dir = f'{ckpt_savedir}{name}_{ckpt_out_name}')
-    elif perceptual_loss is None and structural_loss is None and channel_loss is None:
-        torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_PRETRAINED_{epochs}.pth")
-        check_save_dir(dir = f'{ckpt_savedir}{model_name}_{dataset_name}_PRETRAINED_{epochs}')
+    n_dir = str()
+    if perceptual_loss is None and structural_loss is None and channel_loss is None:
+        if ckpt_out_name is not None:
+            n_dir = check_save_dir(dir = f'{ckpt_savedir}{name}/{name}_{ckpt_out_name}')
+            torch.save(model.state_dict(), f"{n_dir}{name}_{ckpt_out_name}.pth")
+        else:
+            n_dir = check_save_dir(dir = f'{ckpt_savedir}{model_name}_{dataset_name}_PRETRAINED_{epochs}')
+            torch.save(model.state_dict(), f"{n_dir}{model_name}_{dataset_name}_PRETRAINED_{epochs}.pth")
     else:
-        torch.save(model.state_dict(), f"{ckpt_savedir}{name}.pth")
-        check_save_dir(dir = f'{ckpt_savedir}{name}')
+        n_dir = check_save_dir(dir = f'{ckpt_savedir}{name}')
+        torch.save(model.state_dict(), f"{n_dir}{name}.pth")
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
