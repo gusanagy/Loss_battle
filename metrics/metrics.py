@@ -378,7 +378,7 @@ def nmetrics(a):
     uiconm = logamee(gray)
 
     uiqm = p1 * uicm + p2 * uism + p3 * uiconm
-    return uiqm,uciqe
+    return uiqm, uciqe
 
 def eme(ch,blocksize=8):
 
