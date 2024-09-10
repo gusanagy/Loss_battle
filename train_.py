@@ -35,7 +35,7 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
         loss_l.append(load_channel_loss(list_loss=channel_loss,rank = device))
     if structural_loss is not None:
         loss_l.append(load_structural_loss(list_loss=structural_loss,rank = device))
-    #print(f"{loss}")
+            #print(f"{loss}")
 
     Loss_unet_vit = nn.MSELoss()
 
@@ -117,7 +117,7 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
     # Salve Dir para salvar os checkpoints
     print(f"Salvando Ckpt {model_name}")
     # Salvar o estado do modelo original
-    if ckpt_name is not None:   
+    if ckpt_out_name is not None:   
         torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_{ckpt_out_name}ckpt.pth")
     else:
         torch.save(model.state_dict(), f"{ckpt_savedir}{model_name}_{dataset_name}_ckpt.pth")
