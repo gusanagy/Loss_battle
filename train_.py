@@ -11,22 +11,6 @@ from src.utils import *
 from tqdm import tqdm  # Use tqdm para ambientes locais, não notebook
 import matplotlib.pyplot as plt
 
-def check_save_dir(dir:str = None):
-    """
-    Cria pastas e subpastas para salvar os resultados.
-    Pasta:
-        output/ckpt_study/(dataset + model + loss)
-        
-    """
-    
-    if dir is None:
-        print("Por favor, insira um nome para o diretório")
-        return 0
-    else:
-        ckpt_savedir = dir
-        if not os.path.exists(ckpt_savedir):
-            os.makedirs(ckpt_savedir)
-    return ckpt_savedir+'/'
 
 def train_final(plot_epc:int = 700,epochs: int=100, model_name=None, 
                 perceptual_loss: str = None, structural_loss: str= None,
@@ -133,6 +117,8 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
                 output = model(data)
             print(f"Epoch [{epoch}/{epochs}], Batch [{batch_idx}/{len(test_loader_UIEB)}]")
             for i in output.cpu().numpy().transpose(0, 2, 3, 1):
+                pred_img = np.flip(i, axis=2)
+                pred_img = np.clip(pred_img * 255, 0, 255).astype(np.uint8)
                 plt.imshow(i)
                 plt.show()
 

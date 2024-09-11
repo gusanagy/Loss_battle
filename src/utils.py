@@ -13,25 +13,22 @@ from metrics.metrics import *
 
 def test_one_model(model_name='VAE', dataset_name="UIEB",
                     dataset_path="data", ckpt_path:str=None,
-                    metrics=True, plot=True, save=True):
+                    plot=True, save=True):
     
 
     #"output/ckpt_battle/UNet_PerceptualLoss_vgg11_ckpt.pth"
     filename = ckpt_path.split('/')[-1].split('.')[0]
-    results_savedir = f'output/results_battle/{filename}/'#modificar devido a estrutura de pastas
-    if not os.path.exists(results_savedir):
-        os.makedirs(results_savedir)
-    result_metrics = f'output/metrics_battle/{filename}/'
-    if not os.path.exists(result_metrics):
-        os.makedirs(result_metrics)
+    results_savedir = f'output/ckpt_battle/{filename.split(".")[0]}/'#modificar devido a estrutura de pastas
+    
 
-        
+    # if not os.path.exists(results_savedir):
+    #     os.makedirs(results_savedir)
+    # result_metrics = f'output/metrics_battle/{filename}/'
+    # if not os.path.exists(result_metrics):
+    #     os.makedirs(result_metrics)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_one_model(model=model_name).to(device)
-    #loss_test = build_perceptual_losses(perceptual_loss=['vgg16'],rank=device)
-    # loss_battle.extend(build_perceptual_losses(rank=device))
-    # loss_battle.extend(build_channel_losses(rank = device))
-    # loss_battle.extend(build_structural_losses(rank = device))
 
     # Dataloader UIEB
     train_loader_UIEB, test_loader_UIEB = create_dataloader(dataset_name=dataset_name, dataset_path=dataset_path,ddp=False,batch_size=1)
@@ -46,34 +43,41 @@ def test_one_model(model_name='VAE', dataset_name="UIEB",
     with torch.no_grad():
         if model.__class__.__name__ == 'VAE':
             for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
-                
-                if batch_idx == 1:
-                    break
                 data, target = data.cuda(), target.cuda()
                     
                 output, mu, logvar  = model(data)
-                #print(f"output shape: {output.shape}\nlogvar:{logvar.shape}\nmu:{mu.shape}")
                 
                 #transformando para numpy para calcular as métricas
                 target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
                 predictions = output.cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
+                
                 for i in range(predictions.shape[0]):
                     print(f"ref path:  {ref_path[i].split('/')[-1]}")
                     
                     pred_img = predictions[i][::-1]
                     target_img = target[i][::-1]
-                    #print(f"pred_img min: {pred_img.min()}, max: {pred_img.max()}")
-                    # # Normalizar se necessário (0-1)
-                    # if pred_img.max() > 1.0:
-                    #     pred_img = pred_img / 255.0
-                    # if target_img.max() > 1.0:
-                    #     target_img = target_img / 255.0
                     
                     # Clampeamento e conversão para visualização e salvamento
                     pred_img = np.clip(pred_img * 255, 0, 255).astype(np.uint8)
                     target_img = np.clip(target_img * 255, 0, 255).astype(np.uint8)
+                    
                     print(f"Valor mínimo de pred_img: {np.min(pred_img)}")
                     print(f"Valor máximo de pred_img: {np.max(pred_img)}")
+
+                    if save is True:
+
+                        # Salvar a imagem predita
+                        caminho_imagem = os.path.join(results_savedir, ref_path[i].split('/')[-1])
+                        
+                        cv2.imwrite(caminho_imagem, pred_img)
+                        image_m = cv2.imread(caminho_imagem)
+                        psnr_value, ssim_value, uciqe_,  = PSNR(image_true=target_img,image_test=pred_img,data_range=1.0), SSIM(target_img, pred_img*255, multichannel=True, win_size=3,data_range=1.0), uciqe(nargin=1,loc=image_m)
+                        uiqm , _ = nmetrics(image_m)
+                        psnr_list.append(psnr_value); ssim_list.append(ssim_value); uciqe_list.append(uciqe_); uiqm_list.append(uiqm)
+
+                        print(f"Calculating metrics for {model_name}\n psnr:{PSNR(image_true=target_img,image_test=pred_img*255,data_range=1.0)} ssim: {SSIM(target_img, pred_img*255, multichannel=True, win_size=3,data_range=1.0)}, uciqe: {uciqe(nargin=1,loc=image_m)}, uiqm uciqe:{nmetrics(image_m)}")
+
+
                     if plot is True:
                         # Criar uma figura com 1 linha e 3 colunas
                         fig, axes = plt.subplots(1, 2, figsize=(12, 4))
@@ -91,36 +95,41 @@ def test_one_model(model_name='VAE', dataset_name="UIEB",
 
                         # Exibir o multiplot
                         plt.show()
+                
         else:
             for batch_idx, (data, target, ref_path) in tqdm(enumerate(test_loader_UIEB)):
-                if plot is True:
-                    if batch_idx == 1:
-                        break
                 data = data.cuda()
                 target = target.cpu().numpy().transpose(0, 2, 3, 1) # Convertendo para NHWC
                 predictions = model(data).cpu().numpy().transpose(0, 2, 3, 1)  # Convertendo para NHWC
                 
                 for i in range(predictions.shape[0]):
                     name = ref_path[i].split('/')[-1]
-                    print(f"ref path:  {name}")
+                    print(f"Imagem de Referencia:  {name}")
                     
-                    pred_img = predictions[i][::-1]
-                    target_img = target[i][::-1]
-                    
-                    # #Normalizar se necessário (0-1)
-                    # if pred_img.max() > 1.0:
-                    #     pred_img = pred_img / 255.0
-                    # if target_img.max() > 1.0:
-                    #     target_img = target_img / 255.0
+                    # pred_img = predictions[i][:::-1]
+                    # target_img = target[i][:::-1]
+
+                    pred_img = np.flip(predictions[i], axis=2)
+                    target_img = np.flip(target[i], axis=2)
 
                     # Clampeamento e conversão para visualização e salvamento
                     pred_img = np.clip(pred_img * 255, 0, 255).astype(np.uint8)
                     target_img = np.clip(target_img * 255, 0, 255).astype(np.uint8)
-                    print(f"Valor mínimo de pred_img: {np.min(pred_img)}")
-                    print(f"Valor máximo de pred_img: {np.max(pred_img)}")
+                    # print(f"Valor mínimo de pred_img: {np.min(pred_img)}")
+                    # print(f"Valor máximo de pred_img: {np.max(pred_img)}")
+                    
+                    if save is True:
+                        # Salvar a imagem predita
+                        caminho_imagem = os.path.join(results_savedir, ref_path[i].split('/')[-1])
+
+                        # Calcular as metricas
+                        cv2.imwrite(caminho_imagem, pred_img)#; image_m = cv2.imread(caminho_imagem)
+                        psnr_value, ssim_value, uciqe_value, uiqm_value = calculate_metrics(pred_img, target_img)
+                        psnr_list.append(psnr_value); ssim_list.append(ssim_value); uciqe_list.append(uciqe_value); uiqm_list.append(uiqm_value)
+
+                        print(f"Calculating metrics for {model_name}\n psnr:{psnr_value} ssim: {ssim_value}, uciqe: {uciqe_value}, uiqm:{uiqm_value}")
+
                     if plot is True:
-                        if i == 4:
-                            break
                         #Criar uma figura com 1 linha e 3 colunas
                         fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
@@ -137,36 +146,42 @@ def test_one_model(model_name='VAE', dataset_name="UIEB",
 
                         #Exibir o multiplot
                         plt.show()
-                    
-                    if save is True:
-                        # Salvar a imagem predita
-                        #caminho_imagem = os.path.join(results_savedir, name)
-                        caminho_imagem = os.path.join(results_savedir, ref_path[i].split('/')[-1])
-                        #cv2.imwrite(caminho_imagem, target_img * 255)
-                        cv2.imwrite(caminho_imagem, pred_img)
-                        image_m = cv2.imread(caminho_imagem)
-                        psnr_value, ssim_value, uciqe_,  = PSNR(image_true=target_img,image_test=pred_img*255,data_range=1.0), SSIM(target_img, pred_img*255, multichannel=True, win_size=3,data_range=1.0), uciqe(nargin=1,loc=image_m)
-                        uiqm , _ = nmetrics(image_m)
-                        psnr_list.append(psnr_value); ssim_list.append(ssim_value); uciqe_list.append(uciqe_); uiqm_list.append(uiqm)
 
-                        print(f"Calculating metrics for {model_name}\n psnr:{PSNR(image_true=target_img,image_test=pred_img*255,data_range=1.0)} ssim: {SSIM(target_img, pred_img*255, multichannel=True, win_size=3,data_range=1.0)}, uciqe: {uciqe(nargin=1,loc=image_m)}, uiqm uciqe:{nmetrics(image_m)}")
-
-                        
         if save is True:
-            name = f'{model_name}_{dataset_name}_{loss_l[0].name}_{epochs}'
             avg_ssim = sum(ssim_list) / len(ssim_list)
             avg_psnr = sum(psnr_list) / len(psnr_list)
             avg_uciqe = sum(uciqe_list) / len(uciqe_list)
             avg_uiqm = sum(uiqm_list) / len(uiqm_list)
             
-            print(f'{result_metrics}metrics.txt')
+            print(f'Salvando metricas em {results_savedir}{results_savedir}.txt')
             # Salvar métricas em um arquivo
-            with open(f'{result_metrics}metrics.txt', 'w') as f:
+            with open(f'{results_savedir}{filename}.txt', 'w') as f:
                 f.write(f"""avg_ssim:{avg_ssim}\navg_psnr:{avg_psnr}\navg_uciqe:{avg_uciqe}\navg_uiqm:{avg_uiqm}""")
             print(f"Metrics for {model_name} saved to {results_savedir}/{model_name}_metrics.txt")
 
 def calculate_metrics(pred_img, target_img):
-    pass
+    psnr_value, ssim_value, = PSNR(image_true=target_img,image_test=pred_img*255,data_range=1.0), SSIM(target_img, pred_img*255, multichannel=True, win_size=3,data_range=1.0)
+    uciqe_value = uciqe(nargin=1,loc=pred_img)
+    uiqm_value , _ = nmetrics(pred_img)
+
+    return psnr_value, ssim_value, uciqe_value, uiqm_value
+
+def check_save_dir(dir:str = None):
+    """
+    Cria pastas e subpastas para salvar os resultados.
+    Pasta:
+        output/ckpt_study/(dataset + model + loss)
+        
+    """
+    
+    if dir is None:
+        print("Por favor, insira um nome para o diretório")
+        return 0
+    else:
+        ckpt_savedir = dir
+        if not os.path.exists(ckpt_savedir):
+            os.makedirs(ckpt_savedir)
+    return ckpt_savedir+'/'
 
 def check_dir():
     ckpt_savedir = 'output/ckpt_battle/'

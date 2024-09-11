@@ -27,8 +27,6 @@ from scipy import ndimage
 from PIL import Image
 import numpy as np
 import math
-
-
 import cv2
 import numpy as np
 
