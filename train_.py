@@ -50,10 +50,12 @@ def train_final(plot_epc:int = 700,epochs: int=100, model_name=None,
         loss_l.append(load_perceptual_loss(list_loss=perceptual_loss,rank=device))
         loss_n+=perceptual_loss
     if channel_loss is not None:
-        loss_l.append(load_channel_loss(list_loss=channel_loss,rank = device))
+        #loss_l.append(load_channel_loss(list_loss=channel_loss,rank = device))
+        loss_l.append(load_channel_loss(list_loss=channel_loss))
         loss_n+=channel_loss
     if structural_loss is not None:
-        loss_l.append(load_structural_loss(list_loss=structural_loss,rank = device))
+        #loss_l.append(load_structural_loss(list_loss=structural_loss,rank = device))
+        loss_l.append(load_structural_loss(list_loss=structural_loss))
         loss_n+=structural_loss
             #print(f"{loss}")
 
